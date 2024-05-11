@@ -23,10 +23,14 @@ def get_openstreetmap(city, osm_path=OSM_PATH):
     return osm_map
 
 # read building geometry out of OSM
-def get_buildings(city, osm_map):
+def get_buildings(city, osm_map=None, osm_path=OSM_PATH):
 
-    # read osm map
-    osm_map = pyrosm.OSM(osm_map)
+    # read osm map from path
+    if osm_map is None:
+        osm_map = pyrosm.OSM(os.path.join(osm_path,f'{city}.osm.pbf'))
+    # use given osm map
+    else:
+        osm_map = pyrosm.OSM(osm_map)
     building_map = osm_map.get_buildings()
     print(f'Building map for {city} created.')
     coord_bounds = building_map.geometry.total_bounds
@@ -181,12 +185,12 @@ def img_process(city, building_map, path=IMAGE_DATA_PATH):
 
 # run data acquisition
 for city in CITIES:
-    osm_map = get_openstreetmap(city)
-    coord_bounds, building_map = get_buildings(city, osm_map)
+    #osm_map = get_openstreetmap(city)
+    coord_bounds, building_map = get_buildings(city)
     #get_sat_img(coord_bounds, city)
     plot, data = img_process(city, building_map)
     # save dictionary as pkl
     save_data(data, city)
     # call plot function:
-    #plot_image_data(plot)
+    plot_image_data(plot)
 
