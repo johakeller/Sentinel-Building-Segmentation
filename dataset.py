@@ -77,10 +77,10 @@ class SegmentationDataset(Dataset):
         # output tensors for each band, dimensions: (N,C,H,W)
         rgb_out = torch.zeros(dataset_size, 3, patch_size, patch_size)
         nirgb_out = torch.zeros(dataset_size, 3, patch_size, patch_size)
-        r_out = torch.zeros(dataset_size, patch_size, patch_size)
-        g_out = torch.zeros(dataset_size, patch_size, patch_size)
-        b_out = torch.zeros(dataset_size, patch_size, patch_size)
-        nir_out = torch.zeros(dataset_size, patch_size, patch_size)
+        r_out = torch.zeros(dataset_size, 1, patch_size, patch_size)
+        g_out = torch.zeros(dataset_size, 1, patch_size, patch_size)
+        b_out = torch.zeros(dataset_size, 1, patch_size, patch_size)
+        nir_out = torch.zeros(dataset_size, 1, patch_size, patch_size)
         label_out = torch.zeros(dataset_size, patch_size, patch_size)
 
         
@@ -148,18 +148,19 @@ class SegmentationDataset(Dataset):
 # set parameters
 city = CITIES[8]
 
-training_dataset = SegmentationDataset(city, 'training')
+training_dataset = SegmentationDataset(city, 'training', dataset_size=TRAIN_SIZE)
 # pass the patches already used from the training dataset
-validation_dataset = SegmentationDataset(city, 'validation', training_dataset.used_patches)
+validation_dataset = SegmentationDataset(city, 'validation', training_dataset.used_patches, dataset_size=TEST_SIZE)
 #print(validation_dataset.__getitem__(7)['R'])
+
 # TODO DELETE
 import matplotlib.pyplot as plt
 
 # Assuming validation_dataset is an instance of SegmentationDataset
 # and the 'R' channel is the one you want to plot
 
-# Get the tensor for the 'R' channel
-r_channel_tensor = validation_dataset.__getitem__(2)['NIR']
+# Get the tensor for the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
+r_channel_tensor = validation_dataset.__getitem__(2)['NIR'].squeeze(0)
 
 # Convert the tensor to a NumPy array
 r_channel_array = r_channel_tensor.numpy()

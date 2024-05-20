@@ -6,3 +6,7 @@ IMAGE_DATA_PATH = '/home/johakeller/Documents/Master Computer Science/Architectu
 
 CITIES = ['Aachen', 'Aarhus', 'Berlin','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] 
 #CITIES = ['test_pbf']
+
+# dataset parameters
+TRAIN_SIZE = 1280
+TEST_SIZE = 320
