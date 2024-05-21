@@ -9,4 +9,4 @@ CITIES = ['Aachen', 'Aarhus', 'Berlin','Copenhagen','Helsinki','Lausanne','Leipz
 
 # dataset parameters
 TRAIN_SIZE = 1280
-TEST_SIZE = 320
+VAL_SIZE = 320

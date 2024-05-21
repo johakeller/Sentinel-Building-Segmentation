@@ -14,9 +14,9 @@ class SegmentationDataset(Dataset):
         self.used_patches = used_patches
 
         if mode == 'training':
-            self.dataset = self.load_dataset(city, mode)
+            self.dataset = self.load_dataset(city, mode, dataset_size=TRAIN_SIZE)
         elif mode == 'validation':
-            self.dataset = self.load_dataset(city, mode)
+            self.dataset = self.load_dataset(city, mode, dataset_size=VAL_SIZE)
         else:
             self.dataset = self.load_test_data()
 
@@ -148,9 +148,9 @@ class SegmentationDataset(Dataset):
 # set parameters
 city = CITIES[8]
 
-training_dataset = SegmentationDataset(city, 'training', dataset_size=TRAIN_SIZE)
+training_dataset = SegmentationDataset(city, 'training')
 # pass the patches already used from the training dataset
-validation_dataset = SegmentationDataset(city, 'validation', training_dataset.used_patches, dataset_size=TEST_SIZE)
+validation_dataset = SegmentationDataset(city, 'validation', training_dataset.used_patches)
 #print(validation_dataset.__getitem__(7)['R'])
 
 # TODO DELETE
