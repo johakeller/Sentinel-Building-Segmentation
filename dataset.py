@@ -14,11 +14,11 @@ class SegmentationDataset(Dataset):
         self.used_patches = used_patches
 
         if mode == 'training':
-            self.dataset = self.load_dataset(city, mode, dataset_size=TRAIN_SIZE)
+            self.dataset = self.load_data(city, mode, dataset_size=TRAIN_SIZE)
         elif mode == 'validation':
-            self.dataset = self.load_dataset(city, mode, dataset_size=VAL_SIZE)
-        else:
-            self.dataset = self.load_test_data()
+            self.dataset = self.load_data(city, mode, dataset_size=VAL_SIZE)
+        elif mode == 'test':
+            self.dataset = self.load_test_data(city)
 
     # TODO dataloader necessary?
     def __len__(self):
@@ -63,7 +63,7 @@ class SegmentationDataset(Dataset):
         return False
 
     # helper function to load tensor for training or validation for a specific city
-    def load_dataset(self, city, mode, path=IMAGE_DATA_PATH, patch_size=128, dataset_size=1280):
+    def load_data(self, city, mode, path=IMAGE_DATA_PATH, patch_size=128, dataset_size=1280):
 
         # open pickle data
         with open(os.path.join(path, f'{city}.pkl'), 'rb') as fp:
@@ -140,33 +140,12 @@ class SegmentationDataset(Dataset):
         # return dictionary containing all the tensors for each band
         return {"RGB": rgb_out, "NIRGB": nirgb_out, "R":r_out, "G": g_out, 'B': b_out, 'NIR': nir_out, 'label': label_out}
 
-    def load_test_data(self):
-        pass
+    def load_test_data(self, city, path=IMAGE_DATA_PATH):
+        # open pickle data
+        with open(os.path.join(path, f'{city}.pkl'), 'rb') as fp:
+            # TODO check if data is there
+            dataset = pickle.load(fp)
+        # add dimension at 0
+        return {"RGB": torch.from_numpy(dataset['RGB']).unsqueeze(0), "NIRGB": torch.from_numpy(dataset['NIRGB']).unsqueeze(0), "R":torch.from_numpy(dataset['R']).unsqueeze(0), "G": torch.from_numpy(dataset['G']).unsqueeze(0), 'B': torch.from_numpy(dataset['B']).unsqueeze(0), 'NIR': torch.from_numpy(dataset['NIR']).unsqueeze(0), 'label': torch.from_numpy(dataset['Buildings']).unsqueeze(0)}
 
 
-############################################################################### TEST #######################################################################################
-# set parameters
-city = CITIES[8]
-
-training_dataset = SegmentationDataset(city, 'training')
-# pass the patches already used from the training dataset
-validation_dataset = SegmentationDataset(city, 'validation', training_dataset.used_patches)
-#print(validation_dataset.__getitem__(7)['R'])
-
-# TODO DELETE
-import matplotlib.pyplot as plt
-
-# Assuming validation_dataset is an instance of SegmentationDataset
-# and the 'R' channel is the one you want to plot
-
-# Get the tensor for the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
-r_channel_tensor = validation_dataset.__getitem__(2)['NIR'].squeeze(0)
-
-# Convert the tensor to a NumPy array
-r_channel_array = r_channel_tensor.numpy()
-
-# Plot the greyscale image
-plt.imshow(r_channel_array, cmap='gray')
-plt.colorbar()  # Add a colorbar for reference
-plt.title(f"Greyscale Image from 'NIR' Channel\ncontrast = {r_channel_tensor.std().item()}\nbrightness = {r_channel_tensor.mean().item()}")
-plt.show()

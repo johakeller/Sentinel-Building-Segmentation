@@ -14,23 +14,20 @@ import numpy as np
 from params import *
 
 # get Open Street Map file
-def get_openstreetmap(city, osm_path=OSM_PATH):
+def get_openstreetmap(city, osm_path=OSM_PATH, coordinates=None):
     # create path if not there
     if not os.path.isdir(osm_path):
         os.makedirs(osm_path)
     # download OSM map
-    osm_map = pyrosm.get_data(city, directory=osm_path, update=True)
-    return osm_map
+    osm_map = pyrosm.get_data(city, directory=osm_path)
 
 # read building geometry out of OSM
-def get_buildings(city, osm_map=None, osm_path=OSM_PATH):
-
-    # read osm map from path
-    if osm_map is None:
-        osm_map = pyrosm.OSM(os.path.join(osm_path,f'{city}.osm.pbf'))
-    # use given osm map
+def get_buildings(city, osm_path=OSM_PATH, coord_bounds=None):
+    osm_city_path = os.path.join(osm_path, f'{city}.osm.pbf')
+    if coord_bounds is None:
+        osm_map = pyrosm.OSM(osm_city_path)
     else:
-        osm_map = pyrosm.OSM(osm_map)
+        osm_map = pyrosm.OSM(osm_city_path, coord_bounds)
     building_map = osm_map.get_buildings()
     print(f'Building map for {city} created.')
     coord_bounds = building_map.geometry.total_bounds
@@ -182,15 +179,24 @@ def img_process(city, building_map, path=IMAGE_DATA_PATH):
 
             return image_plot, image_data
             
-
-# run data acquisition
-for city in CITIES:
-    #osm_map = get_openstreetmap(city)
-    coord_bounds, building_map = get_buildings(city)
-    #get_sat_img(coord_bounds, city)
-    plot, data = img_process(city, building_map)
-    # save dictionary as pkl
-    save_data(data, city)
-    # call plot function:
+def run_acquisition():
+    
+    # run data acquisition
+    for city in CITIES:
+        get_openstreetmap(city)
+        coord_bounds, building_map = get_buildings(city)
+        get_sat_img(coord_bounds, city)
+        plot, data = img_process(city, building_map)
+        # save dictionary as pkl
+        save_data(data, city)
+        # call plot function:
+        plot_image_data(plot)
+    
+    # create test data
+    get_openstreetmap(TEST_CITY) # extract data for Berlin
+    coord_bounds, building_map = get_buildings(TEST_CITY, coord_bounds=TEST_COORDS)
+    get_sat_img(coord_bounds, TEST_CITY)
+    plot, data = img_process(TEST_CITY, building_map)
+    save_data(data, TEST_CITY)
     plot_image_data(plot)
 
