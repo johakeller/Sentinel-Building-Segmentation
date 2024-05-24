@@ -5,14 +5,21 @@ from train_apply import *
 
 # what dataset is loaded, how many bands, how to train etc.?
 class DataSplit():
-    def __init__(self, city):
-        self.train_dataset = SegmentationDataset(city, 'training')
-        self.val_dataset = SegmentationDataset(city, 'validation')
-        self.test_dataset = SegmentationDataset(TEST_CITY, 'test')
+    def __init__(self, city_list=CITIES):
+        self.training_sets = []
+        self.validation_sets = []
+        # inititalize training and validation data for list of given cities
+        for city in city_list:
+            self.training_sets.append(SegmentationDataset(city, 'training'))
+            self.training_sets.append(SegmentationDataset(city, 'validation'))
+
+        self.test_set = SegmentationDataset(TEST_CITY, 'test')
+
 
 
 ############################################################################### TEST #######################################################################################
     def visualize_test(self):
+        #DELETE
         import matplotlib.pyplot as plt
 
         # Assuming validation_dataset is an instance of SegmentationDataset

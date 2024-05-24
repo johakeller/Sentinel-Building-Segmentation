@@ -116,7 +116,7 @@ def save_data(image_data, city, path=IMAGE_DATA_PATH):
 
     with open(os.path.join(path, file_name), 'wb') as file:
         pickle.dump(image_data, file)
-    print(f'Image dataset {city} written.')
+    print(f'Image data {city} written.')
 
 def color_correct(channels,r_cor =1, g_cor=1, b_cor=1):
     return channels[0]*r_cor, channels[1]*g_cor, channels[2]*b_cor

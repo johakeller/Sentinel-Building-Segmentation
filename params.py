@@ -2,6 +2,7 @@
 # data paths
 OSM_PATH = '/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/OSM_maps/'
 IMAGE_DATA_PATH = '/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/image_data/'
+DATASET_PATH = '/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/dataset/'
 
 
 CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] 
@@ -12,3 +13,4 @@ TEST_COORDS = [13.294333, 52.454927, 13.500205, 52.574409] # (longitude west, la
 # dataset parameters
 TRAIN_SIZE = 1280
 VAL_SIZE = 320
+PATCH_SIZE = 128
