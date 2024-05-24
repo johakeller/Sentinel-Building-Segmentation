@@ -18,13 +18,13 @@ class SegmentationDataset(Dataset):
         self.patch_size=PATCH_SIZE
         if self.mode =='training':
             self.dataset_size = TRAIN_SIZE
-            self.dataset = self.create_dataset(self.city)
+            self.dataset = self.create_dataset()
         elif self.mode == 'validation':
             self.dataset_size = VAL_SIZE
-            self.dataset = self.create_dataset(self.city)
+            self.dataset = self.create_dataset()
         elif self.mode == 'test':
             self.dataset_size = 1
-            self.dataset = self.create_dataset(self.city)
+            self.dataset = self.create_dataset()
 
     def __len__(self):
         # return number of different images in one tensor (not bands)
@@ -85,10 +85,10 @@ class SegmentationDataset(Dataset):
         print(f'Dataset {self.city} {self.mode} written.')
         return dataset_path
         
-    def create_dataset(self, path=IMAGE_DATA_PATH):
-        images_path = os.path.join(path, f'{self.city}.pkl')
+    def create_dataset(self):
+        images_path = os.path.join(IMAGE_DATA_PATH, f'{self.city}.pkl')
 
-        # check if data exists
+        # check if pkl data exists
         if not os.path.exists(images_path):
             raise FileNotFoundError(f'The image data for {self.city} is not found.')
         

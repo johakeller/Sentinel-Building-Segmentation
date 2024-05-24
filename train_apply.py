@@ -17,7 +17,7 @@ class DataSplit():
 
 
 
-############################################################################### TEST #######################################################################################
+    ############################################################################### TEST #######################################################################################
     def visualize_test(self):
         #DELETE
         import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ class DataSplit():
         # and the 'R' channel is the one you want to plot
 
         # Get the tensor for the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
-        r_channel_tensor = self.test_dataset.__getitem__(0)['NIR'].squeeze(0)
+        r_channel_tensor = self.test_set.__getitem__(0)['NIR'].squeeze(0)
 
         # Convert the tensor to a NumPy array
         r_channel_array = r_channel_tensor.numpy()
