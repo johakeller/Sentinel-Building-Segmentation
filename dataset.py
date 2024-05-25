@@ -9,6 +9,16 @@ from params import *
 
 
 class SegmentationDataset(Dataset):
+    '''
+    Class to create a dataset out of satellite image bands for a given city, constructs image patches with corresponding building labels. The options training, validation and test are available.The data is saved and loaded dynamically,
+    
+    Args:
+
+    Attributes:
+
+    Methods:
+    
+    '''
 
     def __init__(self, city, mode, used_patches=[]):
         # to check whether patch was already in the training set, to avoid data leakage
@@ -27,10 +37,25 @@ class SegmentationDataset(Dataset):
             self.dataset = self.create_dataset()
 
     def __len__(self):
+        '''
+        Obtain the length of the entire data tensor (band-wise).
+
+        Returns:
+            int: length of the data tensor
+        '''
         # return number of different images in one tensor (not bands)
         return self.dataset_size
    
     def __getitem__(self, item):
+        '''
+        Obtain single data sample containing all bands dynamically from the saved tensor.
+
+        Args:
+            item (int): index of the desired data sample in the data tensor
+        
+        Returns:
+            dict: dictionary with pytorch tensor for each band
+        '''
         # extract one image (multiple bands) from the memmap dynamically
         rgb_out = np.memmap(self.dataset['RGB'][0],'float32', mode='r', shape=self.dataset['RGB'][1])
         nirgb_out = np.memmap(self.dataset['NIRGB'][0],'float32', mode='r', shape=self.dataset['NIRGB'][1])
@@ -44,6 +69,17 @@ class SegmentationDataset(Dataset):
         return {"RGB": torch.from_numpy(rgb_out[item]), "NIRGB": torch.from_numpy(nirgb_out[item]), "R":torch.from_numpy(r_out[item]), "G": torch.from_numpy(g_out[item]), 'B': torch.from_numpy(b_out[item]), 'NIR': torch.from_numpy(nir_out[item]), 'label': torch.from_numpy(label_out[item])}
 
     def cloud_check(self, patch, contr_thresh=0.8, bright_thresh=0.8):
+        '''
+        Simple cloud cover classifier: Check the image patch for cloud cover and return True if the cloud cover is above the threshold parameters.
+
+        Args:
+            patch (np.array): satellite image patch in NIR 
+            contr_threshold (float): contrast threshold, if crossed return True
+            bright_thresh (float): brighntess threshold, if crossed return True
+        
+        Returns:
+            bool: Is image patch cloud covered according to method?
+        '''
         # simple cloud classfier by checking RMS contrast: https://en.wikipedia.org/wiki/Contrast_(vision)#RMS_contrast
         # contrast is standard deviation
         contrast = patch.std().item()
@@ -57,6 +93,16 @@ class SegmentationDataset(Dataset):
             return False
     
     def patch_check(self, patch_coord):
+        '''
+        Check if image patch is already (partly) contained in the training set to avoid data leakage. 
+
+        Args:
+            patch_coord (list): corner points of the patch in image coordinates
+
+        Returns:
+            bool: Patch either falls within the coordinates of a patch used in the training set or not. 
+
+        '''
         patch_corners = [(patch_coord[0],patch_coord[1]), (patch_coord[0]+64,patch_coord[1]), (patch_coord[0],patch_coord[1]+64), (patch_coord[0]+64,patch_coord[1]+64)] # [(y,x), (y+64, x), (y, x+64), (y+64, x+64)]
         
         # check if patch_corners fall inside on of the used patches
@@ -68,6 +114,15 @@ class SegmentationDataset(Dataset):
         return False
 
     def dynamic_save(self, dataset):
+        '''
+        Helper function for dynamic saving of the output tensor via numpy memorymap. Allows to access indices without loading the entire tensor into memory.
+
+        Args:
+            dataset (dict): dataset containing tensors of all the bands for a city
+        
+        Returns:
+            string: path of the memorymap tensor 
+        '''
         # create dataset path if not there
         if not os.path.isdir(DATASET_PATH):
             os.makedirs(DATASET_PATH)
@@ -86,6 +141,16 @@ class SegmentationDataset(Dataset):
         return dataset_path
         
     def create_dataset(self):
+        '''
+        Initiate a new dataset given the satellite imagery for a city. Extracts randomly a predefined number of patches of predefined size from all bands in parallel and 
+        saves them dynamically to disc in a tensor with dimensions: (N,C,H,W). The corresponding parameters can be found in params.py.
+
+        Raises:
+            FileNotFoundError: Satellite image data for the city is not found in the given path
+
+        Returns:
+            dict: path of the memory maps of the data tensor
+        '''
         images_path = os.path.join(IMAGE_DATA_PATH, f'{self.city}.pkl')
 
         # check if pkl data exists
