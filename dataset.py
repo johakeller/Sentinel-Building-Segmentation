@@ -20,20 +20,19 @@ class SegmentationDataset(Dataset):
     
     '''
 
-    def __init__(self, city, mode, used_patches=[]):
+    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None):
         # to check whether patch was already in the training set, to avoid data leakage
         self.used_patches = used_patches
         self.city = city
         self.mode = mode
-        self.patch_size=PATCH_SIZE
+        self.patch_size=patch_size
+        self.building_cover =building_cover
+        self.dataset_size = dataset_size
         if self.mode =='training':
-            self.dataset_size = TRAIN_SIZE
             self.dataset = self.create_dataset()
         elif self.mode == 'validation':
-            self.dataset_size = VAL_SIZE
             self.dataset = self.create_dataset()
         elif self.mode == 'test':
-            self.dataset_size = 1
             self.dataset = self.create_dataset()
 
     def __len__(self):
@@ -112,6 +111,25 @@ class SegmentationDataset(Dataset):
                     return True
 
         return False
+
+    def building_check(self, patch):
+        '''
+        Check if the percentage of the patch covered with buildings is below a threshold. Returns False in that case. The objective is to 
+        obtain a desired label distribution for the training set. 
+
+        Args:
+            patch (np.array): binary building label tensor
+        
+        Returns:
+            bool: True of the building coverpercentage larger equal the threshold
+        '''
+        avg_build = patch.mean().item()
+        if avg_build < self.building_cover: 
+            return False
+        else: 
+            print (f'building cover {self.building_cover}: True')
+            return True
+    
 
     def dynamic_save(self, dataset):
         '''
@@ -205,7 +223,7 @@ class SegmentationDataset(Dataset):
                 
                     # for training mode: if no clouds prepare data for dictionary
                     if self.mode == 'training':
-                        if not self.cloud_check(nir_ch):
+                        if not self.cloud_check(nir_ch) and self.building_check(buildings_ch):
                             # fill in output tensors
                             rgb_out[i] = rgb_ch
                             nirgb_out[i] = nirgb_ch
