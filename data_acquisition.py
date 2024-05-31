@@ -185,7 +185,8 @@ def run_acquisition():
     for city in CITIES:
         get_openstreetmap(city)
         coord_bounds, building_map = get_buildings(city)
-        get_sat_img(coord_bounds, city)
+        # only if not yet downloaded
+        if not os.path.exists(os.path.join(IMAGE_DATA_PATH, f'{city}.tif')) : get_sat_img(coord_bounds, city)
         plot, data = img_process(city, building_map)
         # save dictionary as pkl
         save_data(data, city)

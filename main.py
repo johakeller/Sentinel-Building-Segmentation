@@ -7,9 +7,7 @@ from train_apply import *
 
 def main():
     #run_acquisition()
-    dataset = DataSplit(building_cover = 0.4)
-    dataset.visualize_test()
-
+    train_apply()
 
 if __name__ == "__main__":
     main()

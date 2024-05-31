@@ -2,7 +2,9 @@
 # data paths
 OSM_PATH = r'/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/OSM_maps/'
 IMAGE_DATA_PATH = r'/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/image_data/'
-DATASET_PATH = r'/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/dataset/'
+DATASET_TRAIN = r'/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/dataset/training/'
+DATASET_VAL = r'/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/dataset/validation/'
+DATASET_TEST = r'/home/johakeller/Documents/Master Computer Science/Architecture of Machine Learning Systems/Exercise/dataset/test/'
 
 
 CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] 
@@ -16,7 +18,7 @@ VAL_SIZE = 320
 BATCH_SIZE = 32
 TEST_SIZE = 1
 PATCH_SIZE = 128
-BUILDING_COVER = 0.00 # default parameter for desired coverage of data with buildings
+BUILDING_COVER = 0.04 # default parameter for desired coverage of data with buildings
 EPOCHS = 3
 LEARNING_RATE = 1e-03
 

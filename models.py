@@ -8,7 +8,7 @@ class ConvNet(nn.Module):
             nn.Conv2d(channels_in, 32, kernel_size=3, padding=1), nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
             nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Conv2d(1, 1, kernel_size=1, padding=0)
+            nn.Conv2d(128, 1, kernel_size=1, padding=0)
         )
 
     def forward(self, x):

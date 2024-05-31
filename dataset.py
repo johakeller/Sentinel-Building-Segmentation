@@ -20,7 +20,7 @@ class SegmentationDataset(Dataset):
     
     '''
 
-    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None):
+    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None, train_path=DATASET_TRAIN, val_path=DATASET_VAL, test_path=DATASET_TEST):
         # to check whether patch was already in the training set, to avoid data leakage
         self.used_patches = used_patches
         self.city = city
@@ -28,11 +28,21 @@ class SegmentationDataset(Dataset):
         self.patch_size=patch_size
         self.building_cover =building_cover
         self.dataset_size = dataset_size
+        self.ch_num = 4
         if self.mode =='training':
-            self.dataset = self.create_dataset()
+            self.dataset_path = train_path
         elif self.mode == 'validation':
-            self.dataset = self.create_dataset()
+            self.dataset_path = val_path
         elif self.mode == 'test':
+            self.dataset_path = test_path
+        # if the dataset already exists, don't recreate it
+        self.data_file_path = os.path.join(self.dataset_path, f'{self.city}_data.mmap')
+        self.label_path = os.path.join(self.dataset_path, f'{self.city}_label.mmap')
+        # create the path dictionary based on existing files
+        if os.path.exists(os.path.join(self.dataset_path, f'{self.city}_data.mmap')): 
+            self.dataset = {'data': [self.data_file_path, (self.dataset_size, self.ch_num, self.patch_size, self.patch_size)], 'label': [self.label_path, (self.dataset_size, 1, self.patch_size, self.patch_size)] }
+        # if the dataset does not exist, create it
+        else:
             self.dataset = self.create_dataset()
 
     def __len__(self):
@@ -55,17 +65,25 @@ class SegmentationDataset(Dataset):
         Returns:
             dict: dictionary with pytorch tensor for each band
         '''
-        # extract one image (multiple bands) from the memmap dynamically
-        rgb_out = np.memmap(self.dataset['RGB'][0],'float32', mode='r', shape=self.dataset['RGB'][1])
-        nirgb_out = np.memmap(self.dataset['NIRGB'][0],'float32', mode='r', shape=self.dataset['NIRGB'][1])
-        r_out = np.memmap(self.dataset['R'][0],'float32', mode='r', shape=self.dataset['R'][1])
-        g_out = np.memmap(self.dataset['G'][0],'float32', mode='r', shape=self.dataset['G'][1])
-        b_out = np.memmap(self.dataset['B'][0],'float32', mode='r', shape=self.dataset['B'][1])
-        nir_out = np.memmap(self.dataset['NIR'][0],'float32', mode='r', shape=self.dataset['NIR'][1])
-        label_out = np.memmap(self.dataset['label'][0],'float32', mode='r', shape=self.dataset['label'][1])
 
+        # extract multiple bands from the memmap dynamically
+        data = np.memmap(self.dataset['data'][0],'float32', mode='r', shape=self.dataset['data'][1])
+
+        # extract single channels from data
+        r_out = data[item][0]
+        g_out = data[item][1]
+        b_out = data[item][2]
+        nir_out = data[item][3]
+        # and from label
+        label_data = np.memmap(self.dataset['label'][0],'float32', mode='r', shape=self.dataset['label'][1])
+        label_out = label_data[item]
+        # create rgb and nirgb from single channels
+        rgb_out = np.stack((r_out, g_out, b_out),axis=0)
+        nirgb_out = np.stack((nir_out, g_out, b_out),axis=0)
+
+        #print(label_out.shape)
         # output of the getitem method: dictionary with pytorch tensor per band
-        return {"RGB": torch.from_numpy(rgb_out[item]), "NIRGB": torch.from_numpy(nirgb_out[item]), "R":torch.from_numpy(r_out[item]), "G": torch.from_numpy(g_out[item]), 'B': torch.from_numpy(b_out[item]), 'NIR': torch.from_numpy(nir_out[item]), 'label': torch.from_numpy(label_out[item])}
+        return {"RGB": torch.from_numpy(rgb_out), "NIRGB": torch.from_numpy(nirgb_out), "R":torch.from_numpy(r_out), "G": torch.from_numpy(g_out), 'B': torch.from_numpy(b_out), 'NIR': torch.from_numpy(nir_out), 'label': torch.from_numpy(label_out)}
 
     def cloud_check(self, patch, contr_thresh=0.8, bright_thresh=0.8):
         '''
@@ -127,7 +145,6 @@ class SegmentationDataset(Dataset):
         if avg_build < self.building_cover: 
             return False
         else: 
-            print (f'building cover {self.building_cover}: True')
             return True
     
 
@@ -142,17 +159,17 @@ class SegmentationDataset(Dataset):
             string: path of the memorymap tensor 
         '''
         # create dataset path if not there
-        if not os.path.isdir(DATASET_PATH):
-            os.makedirs(DATASET_PATH)
+        if not os.path.isdir(self.dataset_path):
+            os.makedirs(self.dataset_path)
 
         # init output path dictionaries for the tensor
-        dataset_path = {"RGB": None, "NIRGB": None, "R":None, "G": None, 'B': None, 'NIR': None, 'label': None}
+        dataset_path = {'data': None, 'label': None}
 
-        for band in dataset.keys():
-            file_path=os.path.join(DATASET_PATH, f'{self.city}{band}.mmap')
-            dataset_map = np.memmap(file_path, dtype='float32', mode='w+', shape=dataset[band].shape)
-            dataset_path[band]=[file_path, dataset[band].shape] 
-            dataset_map[:] = dataset[band][:] # write to memmap
+        for key in dataset.keys():
+            file_path=os.path.join(self.dataset_path, f'{self.city}_{key}.mmap')
+            dataset_map = np.memmap(file_path, dtype='float32', mode='w+', shape=dataset[key].shape)
+            dataset_path[key]=[file_path, dataset[key].shape] 
+            dataset_map[:] = dataset[key][:] # write to memmap
             dataset_map.flush() # flush to disc
 
         print(f'Dataset {self.city} {self.mode} written.')
@@ -179,25 +196,23 @@ class SegmentationDataset(Dataset):
         with open(images_path, 'rb') as fp:
             raw_data = pickle.load(fp)
 
-        if self.mode =='test':
-            dataset = {"RGB": raw_data['RGB'][np.newaxis,:], "NIRGB": raw_data['NIRGB'][np.newaxis,:], "R":raw_data['R'][np.newaxis,:], "G": raw_data['G'][np.newaxis,:], 'B': raw_data['B'][np.newaxis,:], 'NIR': raw_data['NIR'][np.newaxis,:], 'label': raw_data['Buildings'][np.newaxis,:]}
-            dataset_path = self.dynamic_save(dataset)
-        else:
             # get satellite image boundaries
             image_height = raw_data['RGB'].shape[1]-1
             image_width = raw_data['RGB'].shape[2]-1
 
             # output tensors for each band, dimensions: (N,C,H,W)
-            rgb_out = np.zeros((self.dataset_size, 3, self.patch_size, self.patch_size))
+            bands_out = np.zeros((self.dataset_size, 4, self.patch_size, self.patch_size))
+            labels_out = np.zeros((self.dataset_size, self.patch_size, self.patch_size))
+            '''
             nirgb_out = np.zeros((self.dataset_size, 3, self.patch_size, self.patch_size))
             r_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
             g_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
             b_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
             nir_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
             label_out = np.zeros((self.dataset_size, self.patch_size, self.patch_size))
-
+            '''
             
-            # extract dataset_size random patches
+            # extract dataset_size random patches (i iterates through N of (N,C,H,W))
             for i in range(self.dataset_size):
 
                 clouds = True # cloud cover 
@@ -213,8 +228,6 @@ class SegmentationDataset(Dataset):
                     patch_coord = (rnd_y, rnd_x)
 
                     # extract the same patch from all channels
-                    rgb_ch = raw_data['RGB'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
-                    nirgb_ch = raw_data['NIRGB'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                     r_ch = raw_data['R'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                     g_ch = raw_data['G'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                     b_ch = raw_data['B'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
@@ -224,14 +237,12 @@ class SegmentationDataset(Dataset):
                     # for training mode: if no clouds prepare data for dictionary
                     if self.mode == 'training':
                         if not self.cloud_check(nir_ch) and self.building_check(buildings_ch):
-                            # fill in output tensors
-                            rgb_out[i] = rgb_ch
-                            nirgb_out[i] = nirgb_ch
-                            r_out[i] = r_ch
-                            g_out[i] = g_ch
-                            b_out[i] = b_ch
-                            nir_out[i] = nir_ch
-                            label_out[i] = buildings_ch
+                            # fill in output tensors: bands_out dim = (N,C,H,W)
+                            bands_out[i][0] = r_ch
+                            bands_out[i][1] = g_ch
+                            bands_out[i][2] = b_ch
+                            bands_out[i][3] = nir_ch
+                            labels_out[i] = buildings_ch
                             # set paramaters
                             self.used_patches.append(patch_coord) # append coordinates of patch to used patches list
                             clouds = False
@@ -239,19 +250,17 @@ class SegmentationDataset(Dataset):
                     # validation mode: also check if patch was not used in training
                     else:
                         if not self.cloud_check(nir_ch) and not self.patch_check(patch_coord):
-                            # fill in output tensors
-                            rgb_out[i] = rgb_ch
-                            nirgb_out[i] = nirgb_ch
-                            r_out[i] = r_ch
-                            g_out[i] = g_ch
-                            b_out[i] = b_ch
-                            nir_out[i] = nir_ch
-                            label_out[i] = buildings_ch
+                            # fill in output tensors: bands_out dim = (N,C,H,W)
+                            bands_out[i][0] = r_ch
+                            bands_out[i][1] = g_ch
+                            bands_out[i][2] = b_ch
+                            bands_out[i][3] = nir_ch
+                            labels_out[i] = buildings_ch
                             clouds = False
                             patch_used = False
-            dataset = {"RGB": rgb_out, "NIRGB": nirgb_out, "R":r_out, "G": g_out, 'B': b_out, 'NIR': nir_out, 'label': label_out}
+            dataset = {"data": bands_out, 'label': labels_out}
             dataset_path = self.dynamic_save(dataset)
 
         return dataset_path
 
-    
+        
