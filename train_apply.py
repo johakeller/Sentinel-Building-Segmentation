@@ -17,8 +17,9 @@ class DataSplit():
 
 def train_apply(method=None):
     dataset = DataSplit() # init dataloader for train, valdiation, test
-    model = ConvNet(BAND) # define input channels 
-    trainer = Trainer(model, train_loader=dataset.train_loader, train_output=CONVNET_TRAIN, val_output=CONVNET_VAL)
-    trainer.training()
-    trainer.validation()
+    models = [UNet(BAND,OUT_DIM), ConvNet(BAND)] # define models
+    for model in models:
+        trainer = Trainer(model, train_loader=dataset.train_loader, train_output=CONVNET_TRAIN, val_output=CONVNET_VAL)
+        trainer.training()
+        trainer.validation()
 

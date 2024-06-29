@@ -27,3 +27,6 @@ CONVNET_TRAIN = 'ConvNet_train_metrics' # train metrics output file name
 CONVNET_VAL = 'ConvNet_val_metrics' # validation metrics output file name
 BAND = 'all' # which bands to use
 PRED_THRESHOLD = 0.5
+
+# UNet parameters
+OUT_DIM=1
