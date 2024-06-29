@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from models import *
 from params import *
 from data_acquisition import *
-from training import *
+from train_test import *
 
 # what dataset is loaded, how many bands, how to train etc.?
 class DataSplit():
@@ -16,9 +16,9 @@ class DataSplit():
 
 
 def train_apply(method=None):
-    input_channels = 3 # TODO
     dataset = DataSplit() # init dataloader for train, valdiation, test
-    model = ConvNet(input_channels) # define input channels 
-    trainer = Trainer(model, train_loader=dataset.train_loader)
+    model = ConvNet(BAND) # define input channels 
+    trainer = Trainer(model, train_loader=dataset.train_loader, train_output=CONVNET_TRAIN, val_output=CONVNET_VAL)
     trainer.training()
+    trainer.validation()
 

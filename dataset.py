@@ -77,13 +77,14 @@ class SegmentationDataset(Dataset):
         # and from label
         label_data = np.memmap(self.dataset['label'][0],'float32', mode='r', shape=self.dataset['label'][1])
         label_out = label_data[item]
-        # create rgb and nirgb from single channels
+        # create all, rgb and nirgb from single channels
         rgb_out = np.stack((r_out, g_out, b_out),axis=0)
         nirgb_out = np.stack((nir_out, g_out, b_out),axis=0)
+        all_out = np.stack((nir_out,r_out, g_out, b_out),axis=0)
 
         #print(label_out.shape)
         # output of the getitem method: dictionary with pytorch tensor per band
-        return {"RGB": torch.from_numpy(rgb_out), "NIRGB": torch.from_numpy(nirgb_out), "R":torch.from_numpy(r_out), "G": torch.from_numpy(g_out), 'B': torch.from_numpy(b_out), 'NIR': torch.from_numpy(nir_out), 'label': torch.from_numpy(label_out)}
+        return {"all": torch.from_numpy(all_out),"RGB": torch.from_numpy(rgb_out), "NIRGB": torch.from_numpy(nirgb_out), "R":torch.from_numpy(r_out), "G": torch.from_numpy(g_out), 'B': torch.from_numpy(b_out), 'NIR': torch.from_numpy(nir_out), 'label': torch.from_numpy(label_out)}
 
     def cloud_check(self, patch, contr_thresh=0.8, bright_thresh=0.8):
         '''
@@ -98,8 +99,8 @@ class SegmentationDataset(Dataset):
             bool: Is image patch cloud covered according to method?
         '''
         # simple cloud classfier by checking RMS contrast: https://en.wikipedia.org/wiki/Contrast_(vision)#RMS_contrast
-        # contrast is standard deviation
-        contrast = patch.std().item()
+        # contrast is variance
+        contrast = patch.var().item()
         # use also brightness since clouds appear bright in NIR
         brightness = patch.mean().item()
         if contrast < contr_thresh and brightness > bright_thresh:
@@ -147,7 +148,6 @@ class SegmentationDataset(Dataset):
         else: 
             return True
     
-
     def dynamic_save(self, dataset):
         '''
         Helper function for dynamic saving of the output tensor via numpy memorymap. Allows to access indices without loading the entire tensor into memory.
@@ -203,15 +203,7 @@ class SegmentationDataset(Dataset):
             # output tensors for each band, dimensions: (N,C,H,W)
             bands_out = np.zeros((self.dataset_size, 4, self.patch_size, self.patch_size))
             labels_out = np.zeros((self.dataset_size, self.patch_size, self.patch_size))
-            '''
-            nirgb_out = np.zeros((self.dataset_size, 3, self.patch_size, self.patch_size))
-            r_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
-            g_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
-            b_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
-            nir_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
-            label_out = np.zeros((self.dataset_size, self.patch_size, self.patch_size))
-            '''
-            
+
             # extract dataset_size random patches (i iterates through N of (N,C,H,W))
             for i in range(self.dataset_size):
 
