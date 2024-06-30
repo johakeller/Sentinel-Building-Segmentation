@@ -20,7 +20,7 @@ class SegmentationDataset(Dataset):
     
     '''
 
-    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None, train_path=DATASET_TRAIN, val_path=DATASET_VAL, test_path=DATASET_TEST):
+    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None, train_path=DATASET_TRAIN, val_path=DATASET_VAL, test_path=DATASET_TEST, augmentation = None):
         # to check whether patch was already in the training set, to avoid data leakage
         self.used_patches = used_patches
         self.city = city
@@ -29,12 +29,15 @@ class SegmentationDataset(Dataset):
         self.building_cover =building_cover
         self.dataset_size = dataset_size
         self.ch_num = 4
+        self.augmentation = augmentation # apply augmentation to the dataset
+
         if self.mode =='training':
             self.dataset_path = train_path
         elif self.mode == 'validation':
             self.dataset_path = val_path
         elif self.mode == 'test':
             self.dataset_path = test_path
+
         # if the dataset already exists, don't recreate it
         self.data_file_path = os.path.join(self.dataset_path, f'{self.city}_data.mmap')
         self.label_path = os.path.join(self.dataset_path, f'{self.city}_label.mmap')
@@ -84,7 +87,14 @@ class SegmentationDataset(Dataset):
 
         #print(label_out.shape)
         # output of the getitem method: dictionary with pytorch tensor per band
-        return {"all": torch.from_numpy(all_out),"RGB": torch.from_numpy(rgb_out), "NIRGB": torch.from_numpy(nirgb_out), "R":torch.from_numpy(r_out), "G": torch.from_numpy(g_out), 'B': torch.from_numpy(b_out), 'NIR': torch.from_numpy(nir_out), 'label': torch.from_numpy(label_out)}
+        data_sample = {"all": torch.from_numpy(all_out),"RGB": torch.from_numpy(rgb_out), "NIRGB": torch.from_numpy(nirgb_out), "R":torch.from_numpy(r_out), "G": torch.from_numpy(g_out), 'B': torch.from_numpy(b_out), 'NIR': torch.from_numpy(nir_out), 'label': torch.from_numpy(label_out)}
+
+        # apply augmentation if parameter set
+        if self.augmentation:
+            pass
+
+        return data_sample
+
 
     def cloud_check(self, patch, contr_thresh=0.8, bright_thresh=0.8):
         '''
@@ -145,8 +155,7 @@ class SegmentationDataset(Dataset):
         avg_build = patch.mean().item()
         if avg_build < self.building_cover: 
             return False
-        else: 
-            return True
+        return True
     
     def dynamic_save(self, dataset):
         '''

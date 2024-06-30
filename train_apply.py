@@ -44,13 +44,13 @@ def train_apply(model_name = None):
     
     # find best hyperparameters
     max_score = 0.0
-    for entry in performance_dict:
-        if entry[0] > max_score:
+    for value in performance_dict.values():
+        if value[0] > max_score:
             # obtain trainer
-            trainer = entry[1]
-
+            trainer = value[1]
+            
             # write and display hyperparameter info
-            message = f'Hyperparameters selected with F1 score of {entry[0]}: ' + trainer.description
+            message = f'Hyperparameters selected with F1 score of {value[0]:.2f}: ' + trainer.description
             print(message)
             write_results(message, trainer.val_output)
 

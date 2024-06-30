@@ -8,6 +8,47 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 import params
 
+def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
+    # Create a new figure for the subplots
+    plt.figure(figsize=(15, 5))
+
+    # List of images and titles
+    images = [inp, lab, pred]
+    titles = [inp_title, lab_title, pred_title]
+
+    for i in range(3):
+        # Get the tensor from the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
+        r_channel_tensor = images[i][0]
+
+        # Convert the tensor to a NumPy array
+        r_channel_array = r_channel_tensor.detach().numpy()
+
+        # Plot the greyscale image in the specified subplot
+        plt.subplot(1, 3, i+1)
+        plt.imshow(r_channel_array, cmap='gray')
+        plt.title(titles[i])
+        plt.axis('off')  # Hide axes for better visualization
+
+    # Show the combined figure
+    plt.show()
+
+def write_results(output, file):
+    '''
+    Helper function that writes output into a .txt file in the output_folder.
+
+    Args:
+        output (str): message
+        file (str): file path
+
+    Returns:
+        None
+    '''
+
+    os.makedirs(params.OUT_PATH, exist_ok=True)
+
+    with open(os.path.join(params.OUT_PATH, f'{file}.txt'), "a", encoding="utf-8") as file:
+        file.write(output)
+
 class Trainer:
 
     def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None):
@@ -135,7 +176,6 @@ class Trainer:
         dataloader = self.test_loader
 
         # statistics 
-        prog_bar = tqdm(total=len(dataloader.dataset), desc=f'Berlin test', position=0, leave=True)
         avg_loss = 0.0
         all_labels = torch.tensor([])
         all_predictions = torch.tensor([])
@@ -145,8 +185,6 @@ class Trainer:
 
         with torch.no_grad():
             for data in dataloader: # go through data in each data loader
-                # update progress prog_bar
-                prog_bar.update(dataloader.batch_size)
 
                 test_input = data[self.band]
                 test_label = data['label']
@@ -166,9 +204,8 @@ class Trainer:
                 all_labels = torch.cat((all_labels, test_label.flatten().detach()))
                 all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
 
-        prog_bar.close()
         # average loss per city
-        message = f'Test Berlin, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
+        message = f'Test Berlin, avg loss: {round(avg_loss/ len(dataloader),2)}'
         print(message)
 
         # DELETE
@@ -205,44 +242,4 @@ class Trainer:
         # measure, hyperparameter optimization is performed on
         return f1
 
-def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
-    # Create a new figure for the subplots
-    plt.figure(figsize=(15, 5))
-
-    # List of images and titles
-    images = [inp, lab, pred]
-    titles = [inp_title, lab_title, pred_title]
-
-    for i in range(3):
-        # Get the tensor from the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
-        r_channel_tensor = images[i][0]
-
-        # Convert the tensor to a NumPy array
-        r_channel_array = r_channel_tensor.detach().numpy()
-
-        # Plot the greyscale image in the specified subplot
-        plt.subplot(1, 3, i+1)
-        plt.imshow(r_channel_array, cmap='gray')
-        plt.title(titles[i])
-        plt.axis('off')  # Hide axes for better visualization
-
-    # Show the combined figure
-    plt.show()
-
-def write_results(output, file):
-    '''
-    Helper function that writes output into a .txt file in the output_folder.
-
-    Args:
-        output (str): message
-        file (str): file path
-
-    Returns:
-        None
-    '''
-
-    os.makedirs(params.OUT_PATH, exist_ok=True)
-
-    with open(os.path.join(params.OUT_PATH, f'{file}.txt'), "a", encoding="utf-8") as file:
-        file.write(output)
 
