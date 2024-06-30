@@ -22,21 +22,21 @@ def train_apply(model_name = None):
     # hyperparameter selection: channels
     for band in BANDS:
         # hyperparameter selection: dropout
-        for dropout_rate in DROPOUT:
+        for lr in LEARNING_RATES:
             # hyperparameter selection: weight decays
             for weight_decay in L2_NORM:
 
                 # define model and its parameters
                 if model_name == 'ConvNet':
-                    model = ConvNet(band, dropout_rate)
+                    model = ConvNet(band, DROPOUT[0])
                     train_output = CONVNET_TRAIN
                     val_output = CONVNET_VAL
                 elif model_name == 'UNet':
-                    model = UNet(band,OUT_DIM, dropout_rate)
+                    model = UNet(band,OUT_DIM, DROPOUT[0])
                     train_output = UNET_TRAIN
                     val_output = UNET_VAL
                 # start training and testing
-                trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, dropout=dropout_rate, model_name=model.name)
+                trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, lr=lr, dropout=DROPOUT[0], model_name=model.name)
                 _ =trainer.training()
                 f1 = trainer.validation()
                 # insert performance into dictionary

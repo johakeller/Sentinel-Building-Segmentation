@@ -10,14 +10,14 @@ import params
 
 class Trainer:
 
-    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = params.LEARNING_RATE, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None):
+    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
         self.mode = mode
         self.epochs = epochs
         self.band = band
-        self.description = f'{model_name}, bands: {band}, dropout rate: {dropout}, weight decay: {weight_decay}'
+        self.description = f'{model_name}, bands: {band}, learning rate: {lr}, weight decay: {weight_decay}'
         self.model = model # initialize model after bands, because number of channels has to be adjusted
         self.train_output = train_output
         self.val_output = val_output
