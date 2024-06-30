@@ -25,8 +25,14 @@ LEARNING_RATE = 1e-03
 # ConvNet parameters
 CONVNET_TRAIN = 'ConvNet_train_metrics' # train metrics output file name
 CONVNET_VAL = 'ConvNet_val_metrics' # validation metrics output file name
-BAND = 'all' # which bands to use
-PRED_THRESHOLD = 0.5
+PRED_THRESHOLD = 0.5 # threshold for predicting a pixel as 'building'
 
 # UNet parameters
+UNET_TRAIN = 'UNet_train_metrics' # train metrics output file name
+UNET_VAL = 'UNet_val_metrics' # validation metrics output file name
 OUT_DIM=1
+
+# hyperparameters
+DROPOUT = [0.1, 0.2, 0.5] # dropout rates
+L2_NORM = [1e-2, 1e-3, 1e-5] # L2 normalization (weight decay)
+BANDS = ['all','NIRGB', 'RGB', 'NIR'] # selection of channels

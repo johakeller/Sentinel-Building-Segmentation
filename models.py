@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 
 class ConvNet(nn.Module):
-    def __init__(self, bands):
+    def __init__(self, bands, dropout_rate):
         super(ConvNet, self).__init__()
         # select correct input dimension corresponding to number of bands
         if bands == 'all':
             self.channels_in = 4
-        elif bands== 'RGB' or bands== 'NIRGB':
+        elif bands in ('RGB', 'NIRGB'):
             self.channels_in = 3
         else:
             self.channels_in = 1
@@ -15,20 +15,24 @@ class ConvNet(nn.Module):
         self.model = nn.Sequential(
             nn.Conv2d(self.channels_in, 32, kernel_size=3, padding=1), nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
+            nn.Dropout(dropout_rate), # regularization
             nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
+            nn.Dropout(dropout_rate), # regularization
             nn.Conv2d(128, 1, kernel_size=1, padding=0)
         )
+        self.name = 'ConvNet' # the model has a name
 
     def forward(self, x):
         return self.model(x)
 
 class UNet(nn.Module):
     class Encoder(nn.Module):
-        def __init__(self, in_dimension, out_dimension):
+        def __init__(self, in_dimension, out_dimension, dropout_rate):
             super(UNet.Encoder, self).__init__()
             self.conv_1 = nn.Conv2d(in_dimension, out_dimension, kernel_size=3, padding=1)
             self.conv_2 = nn.Conv2d(out_dimension, out_dimension, kernel_size=3, padding=1)
             self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            self.dropout = nn.Dropout(dropout_rate) # regularization
             self.relu = nn.ReLU(inplace=True)
             self.residual = None
         
@@ -39,11 +43,12 @@ class UNet(nn.Module):
             return x
 
     class Decoder(nn.Module):
-        def __init__(self, in_dimension, out_dimension):
+        def __init__(self, in_dimension, out_dimension, dropout_rate):
             super(UNet.Decoder, self).__init__()
             self.up_conv = nn.ConvTranspose2d(in_dimension, out_dimension, kernel_size=2, stride=2) # undo the max pooling to match the corresponding dimension on the other side of the U
             self.conv_1 = nn.Conv2d(2*out_dimension, out_dimension, kernel_size=3, padding=1)
             self.conv_2 = nn.Conv2d(out_dimension, out_dimension, kernel_size=3, padding=1)
+            self.dropout = nn.Dropout(dropout_rate) # regularization
             self.relu = nn.ReLU(inplace=True)
         
         def forward(self, x, residual):
@@ -52,7 +57,7 @@ class UNet(nn.Module):
             x = self.relu(self.conv_2(x))
             return x
 
-    def __init__(self, bands, channels_out):
+    def __init__(self, bands, channels_out, dropout_rate):
         super(UNet,self).__init__()
 
         # select correct input dimension corresponding to number of bands
@@ -62,12 +67,13 @@ class UNet(nn.Module):
             channels_in = 3
         else:
             channels_in = 1
-
+        self.name = 'UNet' # the model has a name
+        
         # define encoder side
-        self.en_block_1 = self.Encoder(channels_in, 64)
-        self.en_block_2 = self.Encoder(64, 128)
-        self.en_block_3 = self.Encoder(128, 256)
-        self.en_block_4 = self.Encoder(256, 512)
+        self.en_block_1 = self.Encoder(channels_in, 64, dropout_rate)
+        self.en_block_2 = self.Encoder(64, 128, dropout_rate)
+        self.en_block_3 = self.Encoder(128, 256, dropout_rate)
+        self.en_block_4 = self.Encoder(256, 512, dropout_rate)
 
         # bottleneck
         self.bottleneck = nn.Sequential(
@@ -78,10 +84,10 @@ class UNet(nn.Module):
         )
 
         # define decoder side
-        self.dec_block_1 = self.Decoder(1024, 512)
-        self.dec_block_2 = self.Decoder(512, 256)
-        self.dec_block_3 = self.Decoder(256, 128)
-        self.dec_block_4 = self.Decoder(128, 64)
+        self.dec_block_1 = self.Decoder(1024, 512, dropout_rate)
+        self.dec_block_2 = self.Decoder(512, 256, dropout_rate)
+        self.dec_block_3 = self.Decoder(256, 128, dropout_rate)
+        self.dec_block_4 = self.Decoder(128, 64, dropout_rate)
 
         # output block
         self.output_layer = nn.Sequential(

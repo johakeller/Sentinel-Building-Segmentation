@@ -15,11 +15,46 @@ class DataSplit():
         self.test_loader = DataLoader(SegmentationDataset(TEST_CITY, 'test', dataset_size=test_size), batch_size) # only dataloader!
 
 
-def train_apply(method=None):
+def train_apply(model_name = None):
     dataset = DataSplit() # init dataloader for train, valdiation, test
-    models = [UNet(BAND,OUT_DIM), ConvNet(BAND)] # define models
-    for model in models:
-        trainer = Trainer(model, train_loader=dataset.train_loader, train_output=CONVNET_TRAIN, val_output=CONVNET_VAL)
-        trainer.training()
-        trainer.validation()
+    # saves the models with hperparameters and performance for optimization
+    performance_dict = {}
+    # hyperparameter selection: channels
+    for band in BANDS:
+        # hyperparameter selection: dropout
+        for dropout_rate in DROPOUT:
+            # hyperparameter selection: weight decays
+            for weight_decay in L2_NORM:
+
+                # define model and its parameters
+                if model_name == 'ConvNet':
+                    model = ConvNet(band, dropout_rate)
+                    train_output = CONVNET_TRAIN
+                    val_output = CONVNET_VAL
+                elif model_name == 'UNet':
+                    model = UNet(band,OUT_DIM, dropout_rate)
+                    train_output = UNET_TRAIN
+                    val_output = UNET_VAL
+                # start training and testing
+                trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, dropout=dropout_rate, model_name=model.name)
+                _ =trainer.training()
+                f1 = trainer.validation()
+                # insert performance into dictionary
+                performance_dict[trainer.description]= [f1, trainer]
+    
+    # find best hyperparameters
+    max_score = 0.0
+    for entry in performance_dict:
+        if entry[0] > max_score:
+            # obtain trainer
+            trainer = entry[1]
+
+            # write and display hyperparameter info
+            message = f'Hyperparameters selected with F1 score of {entry[0]}: ' + trainer.description
+            print(message)
+            write_results(message, trainer.val_output)
+
+            # run test
+            f1 = trainer.test()
+
 

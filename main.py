@@ -7,7 +7,8 @@ from train_apply import *
 
 def main():
     #run_acquisition()
-    train_apply()
+    train_apply('UNet')
+    train_apply('ConvNet')
 
 if __name__ == "__main__":
     main()
