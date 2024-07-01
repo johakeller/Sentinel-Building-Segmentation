@@ -3,30 +3,6 @@ import cv2
 
 import params
 
-def salt_pepper_noise(data_sample, probability=params.PROB, mean=params.GMEAN, sigma = params.STDDEV):
-
-    # extract images from data sample
-    bands = [params.BAND]
-
-    # arbitrary number in [0,1]
-    rndm = np.random.rand()
-
-    # apply only to defined percentage of images
-    if rndm <= probability:
-        for band in bands:
-            # extract each band from the sample
-            image = data_sample[band].copy()
-
-            image += np.random.normal(mean, sigma, image.shape)
-
-            # clip to normal intensity range
-            image = np.clip(image,0,255)
-
-            # insert back into data_sample dictionary
-            data_sample[band] = image
-
-    return data_sample
-
 def add_gaussian_noise(data_sample, probability=params.PROB, mean=params.GMEAN, sigma = params.STDDEV):
 
     # extract images from data sample

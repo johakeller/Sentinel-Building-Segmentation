@@ -24,11 +24,15 @@ EPOCHS = 5
 # ConvNet parameters
 CONVNET_TRAIN = 'ConvNet_train_metrics' # train metrics output file name
 CONVNET_VAL = 'ConvNet_val_metrics' # validation metrics output file name
+CONVNET_AUG_TRAIN = 'ConvNet_train_augment_metrics' # train metrics augmentation 
+CONVNET_AUG_VAL = 'ConvNet_test_augment_metrics' # validation metrics augmentation 
 PRED_THRESHOLD = 0.5 # threshold for predicting a pixel as 'building'
 
 # UNet parameters
 UNET_TRAIN = 'UNet_train_metrics' # train metrics output file name
 UNET_VAL = 'UNet_val_metrics' # validation metrics output file name
+UNET_AUG_TRAIN = 'UNet_train_augment_metrics' # train metrics augmentation 
+UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation 
 OUT_DIM=1
 
 # hyperparameters
@@ -39,6 +43,6 @@ BANDS = ['all','NIRGB', 'RGB', 'NIR'] # selection of channels
 
 # augmentation parameters
 BAND = 'all' # used bands for augmentation
-PROB = 0.5 # prob. of augmentation being applied per sample
+PROB = 1 # prob. of augmentation being applied per sample
 GMEAN = 0 # Gaussian mean
-STDDEV = 0.5 # Gaussian standard deviation 
+STDDEV = 0.07 # Gaussian standard deviation 

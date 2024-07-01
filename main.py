@@ -6,12 +6,12 @@ from train_apply import *
 
 
 def main():
-    
-    #run_acquisition()
+
+    run_acquisition()
     #train_apply('UNet')
     #train_apply('ConvNet')
     #augment_apply('UNet')
-    augment_apply('ConvNet')
+    #augment_apply('ConvNet')
 
 if __name__ == "__main__":
     main()

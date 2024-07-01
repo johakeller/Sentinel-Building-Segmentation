@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 import params
-
+#TODO DELETE
 def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
     # Create a new figure for the subplots
     plt.figure(figsize=(15, 5))
@@ -85,9 +85,9 @@ class Trainer:
                 avg_loss = 0.0
 
                 # TODO delete
-                inp = None
-                pred = None
-                lab = None
+                #inp = None
+                #pred = None
+                #lab = None
 
                 for data in dataloader: # go through data in each data loader
                     # update prog_bar
@@ -106,9 +106,9 @@ class Trainer:
                     self.optimizer.step()
 
                     # TODO delete 
-                    inp = train_input[0]
-                    pred = prediction[0]
-                    lab = train_label[0]
+                    #inp = train_input[0]
+                    #pred = prediction[0]
+                    #lab = train_label[0]
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
@@ -119,7 +119,7 @@ class Trainer:
                 message = f'Training epoch {epoch + 1}, {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
                 print(message)
                 # TODO DELETE
-                visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
                 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.train_output)
@@ -139,9 +139,9 @@ class Trainer:
 
             # statistics 
             prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} validation', position=0, leave=True)
-            inp = None
-            pred = None
-            lab = None
+            #inp = None
+            #pred = None
+            #lab = None
 
             with torch.no_grad():
                 for data in dataloader: # go through data in each data loader
@@ -157,9 +157,9 @@ class Trainer:
                     avg_loss += loss.item()
 
                     # for visualization
-                    inp = test_input[0]
-                    pred = prediction[0]
-                    lab = test_label[0]
+                    #inp = test_input[0]
+                    #pred = prediction[0]
+                    #lab = test_label[0]
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
@@ -188,9 +188,9 @@ class Trainer:
         avg_loss = 0.0
         all_labels = torch.tensor([])
         all_predictions = torch.tensor([])
-        inp = None
-        pred = None
-        lab = None
+        #inp = None
+        #pred = None
+        #lab = None
 
         with torch.no_grad():
             for data in dataloader: # go through data in each data loader
@@ -204,9 +204,9 @@ class Trainer:
                 avg_loss += loss.item()
 
                 # for visualization
-                inp = test_input[0]
-                pred = prediction[0]
-                lab = test_label[0]
+                #inp = test_input[0]
+                #pred = prediction[0]
+                #lab = test_label[0]
 
                 # for metrics (remove unnecessary first dimension)
                 all_labels = torch.cat((all_labels, test_label.flatten().detach()))

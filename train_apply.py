@@ -66,7 +66,11 @@ def augment_apply(model_name = None):
     '''
 
     # list of single augmentations and a combination of augmentationss
-    augmentations_dict = {'random contrast':augment.rnd_contrast, 'horizontal flip':augment.h_flip, 'random zoom':augment.rnd_zoom, 'additive Gaussian noise':augment.add_gaussian_noise, 'all augmentations':[augment.h_flip, augment.rnd_zoom, augment.rnd_contrast, augment.add_gaussian_noise]}
+    augmentations_dict = {'additive Gaussian noise':augment.add_gaussian_noise, 
+                          'random contrast':augment.rnd_contrast, 
+                          'horizontal flip':augment.h_flip, 
+                          'random zoom':augment.rnd_zoom, 
+                          'all augmentations':[augment.h_flip, augment.rnd_zoom, augment.rnd_contrast, augment.add_gaussian_noise]}
 
     # for all single augmentations and a combination of these augmentations
     for descr, augmentations in augmentations_dict.items():
@@ -76,18 +80,18 @@ def augment_apply(model_name = None):
         # define model and its parameters
         if model_name == 'ConvNet':
             model = ConvNet(band, DROPOUT[0])
-            train_output = CONVNET_TRAIN
-            val_output = CONVNET_VAL
+            train_output = CONVNET_AUG_TRAIN
+            val_output = CONVNET_AUG_VAL
         elif model_name == 'UNet':
             model = UNet(band,OUT_DIM, DROPOUT[0])
-            train_output = UNET_TRAIN
-            val_output = UNET_VAL
+            train_output = UNET_AUG_TRAIN
+            val_output = UNET_AUG_VAL
         # start training and testing
         trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=L2_NORM[1], lr=LEARNING_RATES[1], dropout=DROPOUT[0], model_name=model.name)
         # change description
         trainer.description = f'{model_name}, agumentation: {descr}'
         _ =trainer.training()
-        f1 = trainer.validation()
+        _ = trainer.validation()
 
 
 
