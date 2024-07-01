@@ -38,6 +38,7 @@ L2_NORM = [1e-3, 1e-4, 1e-5] # L2 normalization (weight decay)
 BANDS = ['all','NIRGB', 'RGB', 'NIR'] # selection of channels
 
 # augmentation parameters
-PROB = 0.5
+BAND = 'all' # used bands for augmentation
+PROB = 0.5 # prob. of augmentation being applied per sample
 GMEAN = 0 # Gaussian mean
 STDDEV = 0.5 # Gaussian standard deviation 

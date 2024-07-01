@@ -27,7 +27,7 @@ def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
         plt.subplot(1, 3, i+1)
         plt.imshow(r_channel_array, cmap='gray')
         plt.title(titles[i])
-        plt.axis('off')  # Hide axes for better visualization
+        plt.axis('off')  # Hide axes 
 
     # Show the combined figure
     plt.show()
@@ -76,7 +76,6 @@ class Trainer:
         # set model to train mode
         self.model.train()
         for epoch in range(self.epochs): # all epochs
-            print(f'epoch {epoch} of {self.epochs}')
             all_labels = torch.tensor([])
             all_predictions = torch.tensor([])
 
