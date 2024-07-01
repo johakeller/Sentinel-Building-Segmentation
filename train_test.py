@@ -76,7 +76,7 @@ class Trainer:
         # set model to train mode
         self.model.train()
         for epoch in range(self.epochs): # all epochs
-
+            print(f'epoch {epoch} of {self.epochs}')
             all_labels = torch.tensor([])
             all_predictions = torch.tensor([])
 
@@ -84,6 +84,11 @@ class Trainer:
                 # statistics 
                 prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} training ', position=0, leave=False)
                 avg_loss = 0.0
+
+                # TODO delete
+                inp = None
+                pred = None
+                lab = None
 
                 for data in dataloader: # go through data in each data loader
                     # update prog_bar
@@ -101,18 +106,24 @@ class Trainer:
                     loss.backward()
                     self.optimizer.step()
 
-                    # TODO: look up other metrics, relevant for image segmentation AUTOMATIC IMAGE ANALYSIS
+                    # TODO delete 
+                    inp = train_input[0]
+                    pred = prediction[0]
+                    lab = train_label[0]
+
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
-                
+
                 prog_bar.close()             
                 # average loss after each city
                 message = f'Training epoch {epoch + 1}, {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
                 print(message)
+                # TODO DELETE
+                visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
                 
-            # calculate, print and write metrics, return f1 score
-            return self.calculate_metrics(all_labels, all_predictions, self.train_output)
+        # calculate, print and write metrics, return f1 score
+        return self.calculate_metrics(all_labels, all_predictions, self.train_output)
 
     def validation(self):
         '''
@@ -151,18 +162,17 @@ class Trainer:
                     pred = prediction[0]
                     lab = test_label[0]
 
-                    # TODO: look up other metrics, relevant for image segmentation AUTOMATIC IMAGE ANALYSIS
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
-
+                    
             prog_bar.close()
             # average loss per city
             message = f'Valdiation {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
             print(message)
 
             # DELETE
-            visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+            #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.val_output)
@@ -199,7 +209,6 @@ class Trainer:
                 pred = prediction[0]
                 lab = test_label[0]
 
-                # TODO: look up other metrics, relevant for image segmentation AUTOMATIC IMAGE ANALYSIS
                 # for metrics (remove unnecessary first dimension)
                 all_labels = torch.cat((all_labels, test_label.flatten().detach()))
                 all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
@@ -209,7 +218,7 @@ class Trainer:
         print(message)
 
         # DELETE
-        visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+        #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.val_output)

@@ -6,6 +6,7 @@ import random
 import numpy as np
 
 from params import *
+import augment
 
 
 class SegmentationDataset(Dataset):
@@ -20,7 +21,7 @@ class SegmentationDataset(Dataset):
     
     '''
 
-    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None, train_path=DATASET_TRAIN, val_path=DATASET_VAL, test_path=DATASET_TEST, augmentation = None):
+    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None, train_path=DATASET_TRAIN, val_path=DATASET_VAL, test_path=DATASET_TEST, augmentations = None):
         # to check whether patch was already in the training set, to avoid data leakage
         self.used_patches = used_patches
         self.city = city
@@ -29,7 +30,7 @@ class SegmentationDataset(Dataset):
         self.building_cover =building_cover
         self.dataset_size = dataset_size
         self.ch_num = 4
-        self.augmentation = augmentation # apply augmentation to the dataset
+        self.augmentations = augmentations # apply augmentation to the dataset
 
         if self.mode =='training':
             self.dataset_path = train_path
@@ -85,14 +86,17 @@ class SegmentationDataset(Dataset):
         nirgb_out = np.stack((nir_out, g_out, b_out),axis=0)
         all_out = np.stack((nir_out,r_out, g_out, b_out),axis=0)
 
-        #print(label_out.shape)
         # output of the getitem method: dictionary with pytorch tensor per band
-        data_sample = {"all": torch.from_numpy(all_out),"RGB": torch.from_numpy(rgb_out), "NIRGB": torch.from_numpy(nirgb_out), "R":torch.from_numpy(r_out), "G": torch.from_numpy(g_out), 'B': torch.from_numpy(b_out), 'NIR': torch.from_numpy(nir_out), 'label': torch.from_numpy(label_out)}
+        data_sample = {"all": all_out,"RGB": rgb_out, "NIRGB": nirgb_out, "R": r_out, "G": g_out, 'B': b_out, 'NIR': nir_out, 'label': label_out}
 
         # apply augmentation if parameter set
-        if self.augmentation:
-            pass
+        if self.augmentations is not None:
+            data_sample = augment.apply_augment(data_sample, self.augmentations) 
 
+        # convert into torch tensor
+        for key, value in data_sample.items():
+            data_sample[key] = torch.from_numpy(value)
+       
         return data_sample
 
 
@@ -114,11 +118,11 @@ class SegmentationDataset(Dataset):
         # use also brightness since clouds appear bright in NIR
         brightness = patch.mean().item()
         if contrast < contr_thresh and brightness > bright_thresh:
-            return True
+            return False
         else:
             #print(f'contrast: {contrast}')
             #print(f'brightness: {brightness}')
-            return False
+            return True
     
     def patch_check(self, patch_coord):
         '''
@@ -137,10 +141,10 @@ class SegmentationDataset(Dataset):
         for used_patch in self.used_patches:
             for point in patch_corners:
                 if ((point[0] >= used_patch[0]) and (point[0] <= used_patch[0]+64)) and ((point[1] >= used_patch[1]) and (point[1] <= used_patch[1]+64)):
-                    return True
+                    return False
 
-        return False
-
+        return True
+    
     def building_check(self, patch):
         '''
         Check if the percentage of the patch covered with buildings is below a threshold. Returns False in that case. The objective is to 
@@ -153,6 +157,7 @@ class SegmentationDataset(Dataset):
             bool: True of the building coverpercentage larger equal the threshold
         '''
         avg_build = patch.mean().item()
+        print(f'average building cover: {avg_build}') # TODO: DELETE
         if avg_build < self.building_cover: 
             return False
         return True
@@ -215,12 +220,12 @@ class SegmentationDataset(Dataset):
 
             # extract dataset_size random patches (i iterates through N of (N,C,H,W))
             for i in range(self.dataset_size):
+                
+                # while there has not been a proper candidate for patch i
+                keep_looking = True
 
-                clouds = True # cloud cover 
-                # defines if patch i was already used
-                patch_used = True 
-
-                while clouds or patch_used:
+                # keep looking for new patches, while the patch was already used or too many clouds
+                while keep_looking:
                     # choose a patch of size patch_size at random coordinates (don't cross border)
                     rnd_y = random.randint(0, image_height - self.patch_size)
                     rnd_x = random.randint(0, image_width - self.patch_size)
@@ -237,7 +242,7 @@ class SegmentationDataset(Dataset):
                 
                     # for training mode: if no clouds prepare data for dictionary
                     if self.mode == 'training':
-                        if not self.cloud_check(nir_ch) and self.building_check(buildings_ch):
+                        if self.cloud_check(nir_ch) and self.building_check(buildings_ch):
                             # fill in output tensors: bands_out dim = (N,C,H,W)
                             bands_out[i][0] = r_ch
                             bands_out[i][1] = g_ch
@@ -246,19 +251,19 @@ class SegmentationDataset(Dataset):
                             labels_out[i] = buildings_ch
                             # set paramaters
                             self.used_patches.append(patch_coord) # append coordinates of patch to used patches list
-                            clouds = False
-                            patch_used = False
-                    # validation mode: also check if patch was not used in training
+                            # set loop parameter
+                            keep_looking = False
+
+                    # validation mode: check for cloud cover, also check if patch was not used in training, don't check for min. building cover
                     else:
-                        if not self.cloud_check(nir_ch) and not self.patch_check(patch_coord):
+                        if self.cloud_check(nir_ch) and self.patch_check(patch_coord):
                             # fill in output tensors: bands_out dim = (N,C,H,W)
                             bands_out[i][0] = r_ch
                             bands_out[i][1] = g_ch
                             bands_out[i][2] = b_ch
                             bands_out[i][3] = nir_ch
                             labels_out[i] = buildings_ch
-                            clouds = False
-                            patch_used = False
+                            keep_looking = False
             dataset = {"data": bands_out, 'label': labels_out}
             dataset_path = self.dynamic_save(dataset)
 
