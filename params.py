@@ -19,7 +19,7 @@ BATCH_SIZE = 32
 TEST_SIZE = 1
 PATCH_SIZE = 128
 BUILDING_COVER = 0.3 # default parameter for desired coverage of data with buildings
-EPOCHS = 5
+EPOCHS = 6
 
 # ConvNet parameters
 CONVNET_TRAIN = 'ConvNet_train_metrics' # train metrics output file name
@@ -37,9 +37,9 @@ OUT_DIM=1
 
 # hyperparameters
 DROPOUT = [0.1, 0.2, 0.4] # dropout rates
-LEARNING_RATES = [1e-02, 1e-03, 1e-04] # learning rates
-L2_NORM = [1e-3, 1e-4, 1e-5] # L2 normalization (weight decay)
-BANDS = ['all','NIRGB', 'RGB', 'NIR'] # selection of channels
+LEARNING_RATES = [5e-02, 1e-02, 1e-03] # learning rates
+L2_NORM = [1e-4, 1e-5] # L2 normalization (weight decay)
+BANDS = ['all','NIRGB', 'RGB'] # selection of channels
 
 # augmentation parameters
 BAND = 'all' # used bands for augmentation

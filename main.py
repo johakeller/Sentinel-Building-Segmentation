@@ -9,7 +9,7 @@ def main():
 
     run_acquisition()
     #train_apply('UNet')
-    #train_apply('ConvNet')
+    train_apply('ConvNet')
     #augment_apply('UNet')
     #augment_apply('ConvNet')
 

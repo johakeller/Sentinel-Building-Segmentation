@@ -157,7 +157,7 @@ class SegmentationDataset(Dataset):
             bool: True of the building coverpercentage larger equal the threshold
         '''
         avg_build = patch.mean().item()
-        print(f'average building cover: {avg_build}') # TODO: DELETE
+
         if avg_build < self.building_cover: 
             return False
         return True
@@ -216,7 +216,7 @@ class SegmentationDataset(Dataset):
 
             # output tensors for each band, dimensions: (N,C,H,W)
             bands_out = np.zeros((self.dataset_size, 4, self.patch_size, self.patch_size))
-            labels_out = np.zeros((self.dataset_size, self.patch_size, self.patch_size))
+            labels_out = np.zeros((self.dataset_size, 1, self.patch_size, self.patch_size))
 
             # extract dataset_size random patches (i iterates through N of (N,C,H,W))
             for i in range(self.dataset_size):
@@ -248,7 +248,7 @@ class SegmentationDataset(Dataset):
                             bands_out[i][1] = g_ch
                             bands_out[i][2] = b_ch
                             bands_out[i][3] = nir_ch
-                            labels_out[i] = buildings_ch
+                            labels_out[i][0] = buildings_ch
                             # set paramaters
                             self.used_patches.append(patch_coord) # append coordinates of patch to used patches list
                             # set loop parameter
