@@ -1,8 +1,8 @@
 import openeo
 from openeo.processes import ProcessBuilder
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+from rasterio.features import rasterize
 from rasterio.io import MemoryFile
-from matplotlib.colors import ListedColormap, Normalize
 import os
 import pyrosm
 import geopandas as gpd
@@ -17,22 +17,20 @@ import numpy as np
 from params import *
 
 # get Open Street Map file
-def get_openstreetmap(city, osm_path=OSM_PATH):
+def get_openstreetmap(city, osm_path=OSM_PATH, coordinates=None):
     # create path if not there
     if not os.path.isdir(osm_path):
         os.makedirs(osm_path)
     # download OSM map
-    osm_map_path = pyrosm.get_data(city, directory=osm_path)
-    # return file path
-    return osm_map_path
+    osm_map = pyrosm.get_data(city, directory=osm_path)
 
 # read building geometry out of OSM
 def get_buildings(city, osm_path=OSM_PATH, coord_bounds=None):
+    osm_city_path = os.path.join(osm_path, f'{city}.osm.pbf')
     if coord_bounds is None:
-        osm_map = pyrosm.OSM(osm_path)
+        osm_map = pyrosm.OSM(osm_city_path)
     else:
-        osm_map = pyrosm.OSM(osm_path, coord_bounds)
-
+        osm_map = pyrosm.OSM(osm_city_path, coord_bounds)
     building_map = osm_map.get_buildings()
     print(f'Building map for {city} created.')
     coord_bounds = building_map.geometry.total_bounds
@@ -71,10 +69,10 @@ def get_sat_img(coord_bounds, city, image_path=IMAGE_DATA_PATH):
     job.get_results().download_file(file_name)
 
 def rasterize_buildings(map, building_map):
-    building_raster = rasterio.features.rasterize(
+    building_raster = rasterize(
         shapes=building_map.geometry, 
         out_shape=(map.height, map.width),
-        transform=map.transform, # TODO is that right?
+        transform=map.transform, 
         fill=0,
         all_touched=True, 
         dtype=rasterio.uint8
@@ -82,6 +80,7 @@ def rasterize_buildings(map, building_map):
     return building_raster
 
 def plot_image_data(image_data):
+    # TODO just use the rasterized
     fig = plt.figure(figsize=(16,10))
     ax_list = fig.subplots(2,4)
 
@@ -128,9 +127,6 @@ def save_data(image_data, city, path=IMAGE_DATA_PATH):
         pickle.dump(image_data, file)
     print(f'Image data {city} written.')
 
-def color_correct(channels,r_cor =1, g_cor=1, b_cor=1):
-    return channels[0]*r_cor, channels[1]*g_cor, channels[2]*b_cor
-
 def equalize(channel):
     values = channel.copy()
     # replace nan values by 0
@@ -168,11 +164,11 @@ def reproject_crs(file_path, building_map):
                     dst_transform=transform,
                     dst_crs=building_map.crs,
                     resampling=Resampling.nearest)
-
+                
     return sat_image_repro
-
+                
 def img_process(city, building_map, path=IMAGE_DATA_PATH):
-    
+    # TODO just one output with the rasterized buildings
     file_path = os.path.join(path, f'{city}.tif')
 
     # match sat_image CRS
@@ -184,8 +180,6 @@ def img_process(city, building_map, path=IMAGE_DATA_PATH):
         rgb = sat_image.read([3, 2, 1])
         # histogram equalization: rgb.values gives the np.array
         rgb = equalize(rgb)
-        # manually correct color values
-        #rgb.values[0],rgb.values[1], rgb.values[2] = color_correct(rgb.values)
         
         # create nirgb
         nirgb = sat_image.read([4, 2, 1])
@@ -219,17 +213,17 @@ def img_process(city, building_map, path=IMAGE_DATA_PATH):
         image_plot = {'Buildings overlay':building_map, 'Buildings':building_raster,'RGB':rgb, 'NIRGB':nirgb, 'R':r, 'G':g, 'B':b, 'NIR':nir}
         
         # dictionary with sat_image data for saving
-        image_data = {'RGB':rgb, 'NIRGB':nirgb, 'R':r, 'G':g, 'B':b, 'NIR':nir, 'Buildings':building_raster}
-
+        image_data = {'R':np.expand_dims(r, axis=0), 'G':np.expand_dims(g, axis=0), 'B':np.expand_dims(b, axis=0), 'NIR':np.expand_dims(nir, axis=0), 'Buildings':np.expand_dims(building_raster, axis=0)}
+        
+        print(f'r: {np.expand_dims(r, axis=0).shape}, buildings {np.expand_dims(building_raster, axis=0).shape}')
         return image_plot, image_data
-                
+            
 def run_acquisition():
     
     # run data acquisition
     for city in CITIES:
-        osm_path=get_openstreetmap(city)
-        # pass osm filepath to read buildings
-        coord_bounds, building_map = get_buildings(city, osm_path=osm_path)
+        get_openstreetmap(city)
+        coord_bounds, building_map = get_buildings(city)
         # only if not yet downloaded
         if not os.path.exists(os.path.join(IMAGE_DATA_PATH, f'{city}.tif')) : get_sat_img(coord_bounds, city)
         plot, data = img_process(city, building_map)
@@ -241,8 +235,7 @@ def run_acquisition():
     # create test data
     get_openstreetmap(TEST_CITY) # extract data for Berlin
     coord_bounds, building_map = get_buildings(TEST_CITY, coord_bounds=TEST_COORDS)
-    get_sat_img(coord_bounds, TEST_CITY)
+    if not os.path.exists(os.path.join(IMAGE_DATA_PATH, f'{TEST_CITY}.tif')) : get_sat_img(coord_bounds, TEST_CITY)
     plot, data = img_process(TEST_CITY, building_map)
     save_data(data, TEST_CITY)
     #plot_image_data(plot)
-

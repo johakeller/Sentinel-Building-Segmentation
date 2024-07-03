@@ -37,7 +37,7 @@ OUT_DIM=1
 
 # hyperparameters
 DROPOUT = [0.1, 0.2, 0.4] # dropout rates
-LEARNING_RATES = [5e-02, 1e-02, 1e-03] # learning rates
+LEARNING_RATES = [1e-01, 1e-02, 1e-03] # learning rates
 L2_NORM = [1e-4, 1e-5] # L2 normalization (weight decay)
 BANDS = ['all','NIRGB', 'RGB'] # selection of channels
 

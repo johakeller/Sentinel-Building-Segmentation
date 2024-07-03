@@ -157,9 +157,9 @@ class SegmentationDataset(Dataset):
             bool: True of the building coverpercentage larger equal the threshold
         '''
         avg_build = patch.mean().item()
-
         if avg_build < self.building_cover: 
             return False
+        print(f'average building cover: {avg_build}') # TODO: DELETE
         return True
     
     def dynamic_save(self, dataset):
@@ -211,8 +211,8 @@ class SegmentationDataset(Dataset):
             raw_data = pickle.load(fp)
 
             # get satellite image boundaries
-            image_height = raw_data['RGB'].shape[1]-1
-            image_width = raw_data['RGB'].shape[2]-1
+            image_height = raw_data['R'].shape[1]-1
+            image_width = raw_data['R'].shape[2]-1
 
             # output tensors for each band, dimensions: (N,C,H,W)
             bands_out = np.zeros((self.dataset_size, 4, self.patch_size, self.patch_size))
@@ -238,7 +238,7 @@ class SegmentationDataset(Dataset):
                     g_ch = raw_data['G'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                     b_ch = raw_data['B'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                     nir_ch = raw_data['NIR'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
-                    buildings_ch = raw_data['Buildings'][patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
+                    buildings_ch = raw_data['Buildings'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                 
                     # for training mode: if no clouds prepare data for dictionary
                     if self.mode == 'training':
@@ -262,7 +262,7 @@ class SegmentationDataset(Dataset):
                             bands_out[i][1] = g_ch
                             bands_out[i][2] = b_ch
                             bands_out[i][3] = nir_ch
-                            labels_out[i] = buildings_ch
+                            labels_out[i][0] = buildings_ch
                             keep_looking = False
             dataset = {"data": bands_out, 'label': labels_out}
             dataset_path = self.dynamic_save(dataset)
