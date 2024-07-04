@@ -111,16 +111,16 @@ class SegmentationDataset(Dataset):
         '''
 
         # extract multiple bands from the memmap dynamically
-        data = np.memmap(self.dataset['data'][0],'float32', mode='r', shape=self.dataset['data'][1])
+        data = np.memmap(self.dataset['data'][0],'float32', mode='r+', shape=self.dataset['data'][1])
 
         # extract single channels from data
-        r_out = data[item][0]
-        g_out = data[item][1]
-        b_out = data[item][2]
-        nir_out = data[item][3]
+        r_out = np.expand_dims(data[item][0], axis=0)
+        g_out = np.expand_dims(data[item][1], axis=0)
+        b_out = np.expand_dims(data[item][2], axis=0)
+        nir_out = np.expand_dims(data[item][3], axis=0)
 
         # and from label
-        label_data = np.memmap(self.dataset['label'][0],'float32', mode='r', shape=self.dataset['label'][1])
+        label_data = np.memmap(self.dataset['label'][0],'float32', mode='r+', shape=self.dataset['label'][1])
         label_out = label_data[item]
         
         # create all, rgb and nirgb from single channels
@@ -246,7 +246,7 @@ class SegmentationDataset(Dataset):
         Returns:
             dict: path of the memory maps of the data tensor
         '''
-        
+
         images_path = os.path.join(params.IMAGE_DATA_PATH, f'{self.city}.pkl')
 
         # check if pkl data exists

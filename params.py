@@ -8,7 +8,8 @@ DATASET_VAL = r'../dataset/validation/'
 DATASET_TEST = r'../dataset/test/'
 OUT_PATH = r'../output/'
 
-CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] 
+CITIES = ['Aachen']
+#CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] 
 TEST_CITY = 'Berlin'
 TEST_COORDS = [13.294333, 52.454927, 13.500205, 52.574409] # (longitude west, latitude south, longitude east, latitude north)
 #CITIES = ['test_pbf']
@@ -39,8 +40,8 @@ OUT_DIM=1
 # hyperparameters
 DROPOUT = [0.1, 0.2, 0.4] # dropout rates
 LEARNING_RATES = [1e-01, 1e-02, 1e-03] # learning rates
-L2_NORM = [1e-4, 1e-5] # L2 normalization (weight decay)
-BANDS = ['all','NIRGB', 'RGB'] # selection of channels
+L2_NORM = [1e-2, 1e-3] # L2 normalization (weight decay)
+BANDS = ['NIR','NIRGB', 'RGB'] # selection of channels
 
 # augmentation parameters
 BAND = 'all' # used bands for augmentation

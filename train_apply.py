@@ -1,6 +1,7 @@
 from dataset import SegmentationDataset
 from torch.utils.data import DataLoader
 
+import params
 import augment
 from models import *
 from params import *
@@ -40,7 +41,7 @@ def train_apply(model_name = None):
                     val_output = UNET_VAL
                 # start training and testing
                 trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, lr=lr, dropout=DROPOUT[0], model_name=model.name)
-                _ =trainer.training()
+                _ = trainer.training()
                 f1 = trainer.validation()
                 # insert performance into dictionary
                 performance_dict[trainer.description]= [f1, trainer]

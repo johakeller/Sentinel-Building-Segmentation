@@ -81,13 +81,13 @@ class Trainer:
 
             for city, dataloader in self.train_loader.items(): # go through the dictionary train loader (for each city)
                 # statistics 
-                prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} training ', position=0, leave=False)
+                prog_bar = tqdm(total=len(dataloader.dataset), desc=f'Training epoch {epoch+1}, {city}', position=0, leave=False)
                 avg_loss = 0.0
 
                 # TODO delete
-                #inp = None
-                #pred = None
-                #lab = None
+                inp = None
+                pred = None
+                lab = None
 
                 for data in dataloader: # go through data in each data loader
                     # update prog_bar
@@ -106,9 +106,9 @@ class Trainer:
                     self.optimizer.step()
 
                     # TODO delete 
-                    #inp = train_input[0]
-                    #pred = prediction[0]
-                    #lab = train_label[0]
+                    inp = train_input[0]
+                    pred = prediction[0]
+                    lab = train_label[0]
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
@@ -118,8 +118,9 @@ class Trainer:
                 # average loss after each city
                 message = f'Training epoch {epoch + 1}, {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
                 print(message)
+
                 # TODO DELETE
-                #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
                 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.train_output)

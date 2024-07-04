@@ -10,9 +10,10 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 from rasterio.features import rasterize
 from rasterio.io import MemoryFile
 import rasterio
+import geowombat # import is needed to solve bug: training gets stuck without
 import pyrosm
-import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
 from skimage import exposure
 import numpy as np
 
@@ -133,9 +134,10 @@ def rasterize_buildings(base_map, building_map):
     )
     return building_raster
 
-def plot_image_data(image_data):
+def plot_image_data(image_data, city):
     '''
-    Plotting image data for a given city: overlapping buildings, buildings, rgb, nirgb, r,g,b.
+    Plotting image data for a given city: overlapping buildings, buildings, rgb, nirgb, r,g,b, 
+    and saves the plot to disk.
 
     Args:
         image_data (dict):
@@ -154,30 +156,39 @@ def plot_image_data(image_data):
 
     # create new customized colormap:[gradient from (red, green, blue, alpha), to (red, green, blue, alpha)]
     building_cmap = ListedColormap([(0, 0, 0, 0), (0.01, 0.18, 0.9, 1)])
+    
+    # first dimension needs to be removed
+    r = np.squeeze(image_data['R'], axis=0)
+    g = np.squeeze(image_data['G'], axis=0)
+    b = np.squeeze(image_data['B'], axis=0)
+    nir = np.squeeze(image_data['NIR'], axis=0)
+    rgb = np.dstack([image_data['RGB'][0],image_data['RGB'][1],image_data['RGB'][2]])
+    nirgb = np.dstack([image_data['NIRGB'][0],image_data['NIRGB'][1],image_data['NIRGB'][2]])
+    buildings = np.squeeze(image_data['Buildings'], axis=0)
 
     # plot overlapping buildings
-    rgb = np.dstack([image_data['RGB'][0],image_data['RGB'][1],image_data['RGB'][2]])
     ax_list[0][0].imshow(rgb, zorder=1)
-    ax_list[0][0].imshow(image_data['Buildings'], cmap=building_cmap, zorder=2)
+    ax_list[0][0].imshow(buildings, cmap=building_cmap, zorder=2)
     
     # plot buildings
-    ax_list[0][1].imshow(image_data['Buildings'], cmap=building_cmap)
+    ax_list[0][1].imshow(buildings, cmap=building_cmap)
 
     # plot RGB
     ax_list[0][2].imshow(rgb)
 
     # plot NIRGB
-    nirgb = np.dstack([image_data['NIRGB'][0],image_data['NIRGB'][1],image_data['NIRGB'][2]])
     ax_list[0][3].imshow(nirgb)
 
     # plot singe channels
-    ax_list[1][0].imshow(image_data['R'], cmap='gray')
-    ax_list[1][1].imshow(image_data['G'], cmap='gray')
-    ax_list[1][2].imshow(image_data['B'], cmap='gray')
-    ax_list[1][3].imshow(image_data['NIR'], cmap='gray')
+    ax_list[1][0].imshow(r, cmap='gray')
+    ax_list[1][1].imshow(g, cmap='gray')
+    ax_list[1][2].imshow(b, cmap='gray')
+    ax_list[1][3].imshow(nir, cmap='gray')
+    
+    titles = ['Buildings overlay', 'Buildings', 'RGB', 'NIRGB', 'R', 'G', 'B', 'NIR']
 
     # adjust plot
-    for title, ax in zip(image_data.keys(),ax_list.flatten()):
+    for title, ax in zip(titles,ax_list.flatten()):
         ax.set_title(title)
         ax.title.set_fontsize(14)
         ax.axis('off')
@@ -185,7 +196,12 @@ def plot_image_data(image_data):
         
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.1)
-    plt.show()  
+    
+    # save image to file
+    plt.savefig(os.path.join(params.OUT_PATH, f'{city}'), format='png')
+
+    # show plot
+    plt.show() 
 
 def save_data(image_data, city, path=params.IMAGE_DATA_PATH):
     '''
@@ -266,7 +282,7 @@ def reproject_crs(file_path, building_map):
                     resampling=Resampling.nearest)
                 
     return sat_image_repro
-                
+
 def img_process(city, building_map, path=params.IMAGE_DATA_PATH):
     '''
     Extracts and equalizes channels from GTiff satellite image data, applies reprojection 
@@ -326,8 +342,8 @@ def img_process(city, building_map, path=params.IMAGE_DATA_PATH):
         building_raster = rasterize_buildings(sat_image, building_map)
         
         # dictionary with sat_image data for saving
-        return {'R':np.expand_dims(r, axis=0), 'G':np.expand_dims(g, axis=0), 'B':np.expand_dims(b, axis=0), 'NIR':np.expand_dims(nir, axis=0), 'Buildings':np.expand_dims(building_raster, axis=0)}
-        
+        return {'RGB': rgb, 'NIRGB': nirgb, 'R':np.expand_dims(r, axis=0), 'G':np.expand_dims(g, axis=0), 'B':np.expand_dims(b, axis=0), 'NIR':np.expand_dims(nir, axis=0), 'Buildings':np.expand_dims(building_raster, axis=0)}# new        
+
 def run_acquisition(plot=False):
     '''
     Conducts the data acquisition by downloading satellite data and OSM building maps for all 
@@ -359,7 +375,7 @@ def run_acquisition(plot=False):
         
         if plot:
             # call plot function:
-            plot_image_data(data)
+            plot_image_data(data, city)
     
     # create test data
     get_openstreetmap(params.TEST_CITY) # extract data for Berlin
@@ -374,4 +390,4 @@ def run_acquisition(plot=False):
     
     if plot:
         # call plot function:
-        plot_image_data(data)
+        plot_image_data(data, params.TEST_CITY)

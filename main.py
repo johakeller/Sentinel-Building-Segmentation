@@ -39,6 +39,7 @@ def main(args):
 
     # run entire pipeline if no argument passed
     if len(args) == 0:
+        print('Run entire pipeline: acquisition, train of UNet, training of ConvNet, data augmentation with UNet, data augmentation with ConvNet')
         data_acquisition.run_acquisition(plot=False)
         train_apply.train_apply('UNet')
         train_apply.train_apply('ConvNet')
@@ -48,25 +49,34 @@ def main(args):
     # run acquisition with or without plotting
     if 'acq' in args:
         if 'plot' in args:
+            print('Run data acquisition with plotting.')
             data_acquisition.run_acquisition(plot=True)
-        data_acquisition.run_acquisition(plot=False)
+        else:
+            print('Run data acquisition.')
+            data_acquisition.run_acquisition(plot=False)
 
     if check_image_data():
         # UNet
         if 'unet' in args:
             if args.index('unet') + 1 < len(args) and args[args.index('unet')+1] == 'augment':
                 # augmentation train test
+                print('Run data augmentation with UNet.')
                 train_apply.augment_apply('UNet')
-            # normal hyperparameter optimization
-            train_apply.train_apply('UNet')
+            else:
+                # normal hyperparameter optimization
+                print('Run hyperparamter optimization with UNet.')
+                train_apply.train_apply('UNet')
 
         # ConvNet
         if 'convnet' in args:
             if args.index('convnet') + 1 < len(args) and args[args.index('convnet')+1] == 'augment':
                 # augmentation train test
+                print('Run data augmentation with ConvNet.')
                 train_apply.augment_apply('ConvNet')
-            # normal hyperparameter optimization
-            train_apply.train_apply('ConvNet')
+            else:
+                # normal hyperparameter optimization
+                print('Run hyperparamter optimization with ConvNet.')
+                train_apply.train_apply('ConvNet')
     else:
         print('Image data is not available, please run acquisition first: $ python main.py <acq>')
         sys.exit(1)
