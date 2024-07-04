@@ -1,53 +1,96 @@
+'''1.1 Data Aqcuisition and Alignment: 
+Module to acquire satellite image data from European cities and reprojects 
+them into equal earth properties with building maps. Plots serveral bands 
+and prepares the dataset for building segmentation.'''
+
+import os
+import pickle
 import openeo
-from openeo.processes import ProcessBuilder
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from rasterio.features import rasterize
 from rasterio.io import MemoryFile
-import os
-import pyrosm
-import geopandas as gpd
-import matplotlib.pyplot as plt
 import rasterio
-from rasterio.plot import show
-import geowombat as gw
-import pickle
+import pyrosm
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from skimage import exposure
 import numpy as np
 
-from params import *
+import params
 
-# get Open Street Map file
-def get_openstreetmap(city, osm_path=OSM_PATH, coordinates=None):
+def get_openstreetmap(city, osm_path=params.OSM_PATH):
+    '''
+    Function to acquire Open Street Map file for the city and save it in the provided path.
+    If the path does not exist, it creates it.
+
+    Args:
+        city (str): name of the city to acquire OSM map for
+        osm_path (str): path where to save to OSM map file
+    
+    Returns: 
+        str: path where to save to OSM map file
+    '''
+
     # create path if not there
     if not os.path.isdir(osm_path):
         os.makedirs(osm_path)
     # download OSM map
-    osm_map = pyrosm.get_data(city, directory=osm_path)
+    pyrosm.get_data(city, directory=osm_path)
 
-# read building geometry out of OSM
-def get_buildings(city, osm_path=OSM_PATH, coord_bounds=None):
+def get_buildings(city, osm_path=params.OSM_PATH, coord_bounds=None):
+    '''
+    Function to aquire the building geomerty from the OSM map file.
+
+    Args:
+        city (str): name of the city to acquire building geometry for
+        osm_path (str): path where to save to buidling geometry file
+        coord_bounds (tuple): coordinate bounds of the building geometry
+            to extract, format: (min logitude, min latitude, max longitude, max latitude)
+    
+    Returns:
+        tuple: 
+            - (tuple): coordinate bounds of the building geometry
+    '''
+
     osm_city_path = os.path.join(osm_path, f'{city}.osm.pbf')
+
+    # if no coordinate bounds are given
     if coord_bounds is None:
         osm_map = pyrosm.OSM(osm_city_path)
+
+    # extract by coordinate bounds
     else:
         osm_map = pyrosm.OSM(osm_city_path, coord_bounds)
     building_map = osm_map.get_buildings()
+
+    # print message
     print(f'Building map for {city} created.')
     coord_bounds = building_map.geometry.total_bounds
 
     return coord_bounds, building_map
 
-# get satellite images as GTiff
-def get_sat_img(coord_bounds, city, image_path=IMAGE_DATA_PATH):
-    
+def get_sat_img(coord_bounds, city, image_path=params.IMAGE_DATA_PATH):
+    '''
+    Function to acquire Sentinel 2 satellite images in bands R, G, B, NIR
+    for the provided city name and saving them into the image_path as GTiff.
+
+    Args:
+        coord_bounds (tuple): coordinate bounds to extract images from
+        city (str): name of the city to acquire building geometry for
+        image_path (str): path where to save the satellite image data (default: params.IMAGE_DATA_PATH)
+
+    Returns:
+        None
+    '''
+
     # create sat_image path if not there:
     if not os.path.isdir(image_path):
         os.makedirs(image_path)
     
     # get connection
     connection = openeo.connect('https://openeocloud.vito.be/openeo/1.0.0')
-    # authentication
-    #connection.authenticate_basic("username", "password")
+
+    # authentication: connection.authenticate_basic("username", "password")
     connection.authenticate_oidc()
 
     sat_data = connection.load_collection(
@@ -68,11 +111,22 @@ def get_sat_img(coord_bounds, city, image_path=IMAGE_DATA_PATH):
     job.start_and_wait()
     job.get_results().download_file(file_name)
 
-def rasterize_buildings(map, building_map):
+def rasterize_buildings(base_map, building_map):
+    '''
+    Rasterizs building geometry. 
+
+    Args:
+        map(raserio.DatasetReader): satellite image (reprojected) as base
+        building_map (geopandas.GeoDataFrame): GeodataFrame containing the building geometry
+    
+    Returns:
+        numpy.ndarray: raserized building geometry
+    '''
+    
     building_raster = rasterize(
         shapes=building_map.geometry, 
-        out_shape=(map.height, map.width),
-        transform=map.transform, 
+        out_shape=(base_map.height, base_map.width),
+        transform=base_map.transform, 
         fill=0,
         all_touched=True, 
         dtype=rasterio.uint8
@@ -80,7 +134,21 @@ def rasterize_buildings(map, building_map):
     return building_raster
 
 def plot_image_data(image_data):
-    # TODO just use the rasterized
+    '''
+    Plotting image data for a given city: overlapping buildings, buildings, rgb, nirgb, r,g,b.
+
+    Args:
+        image_data (dict):
+            - 'R': red channel
+            - 'G': green channel
+            - 'B': blue channel
+            - 'NIR': near-infrared channel
+            - 'Buildings': buildings labels
+    
+    Returns:
+        None
+    '''
+
     fig = plt.figure(figsize=(16,10))
     ax_list = fig.subplots(2,4)
 
@@ -93,7 +161,7 @@ def plot_image_data(image_data):
     ax_list[0][0].imshow(image_data['Buildings'], cmap=building_cmap, zorder=2)
     
     # plot buildings
-    image_data['Buildings overlay'].plot(ax=ax_list[0][1])
+    ax_list[0][1].imshow(image_data['Buildings'], cmap=building_cmap)
 
     # plot RGB
     ax_list[0][2].imshow(rgb)
@@ -119,8 +187,22 @@ def plot_image_data(image_data):
     plt.subplots_adjust(hspace=0.1)
     plt.show()  
 
-def save_data(image_data, city, path=IMAGE_DATA_PATH):
-    # save dictionar as pkl
+def save_data(image_data, city, path=params.IMAGE_DATA_PATH):
+    '''
+    Saves the image_data dictionary as .pkl to file.
+
+    Args:
+        image_data (dict):
+            - 'R': red channel
+            - 'G': green channel
+            - 'B': blue channel
+            - 'NIR': near-infrared channel
+            - 'Buildings': buildings labels
+    
+    Returns:
+        None
+    '''
+    # save image dictionary as pkl
     file_name=f'{city}.pkl'
 
     with open(os.path.join(path, file_name), 'wb') as file:
@@ -128,18 +210,36 @@ def save_data(image_data, city, path=IMAGE_DATA_PATH):
     print(f'Image data {city} written.')
 
 def equalize(channel):
+    '''
+    Applies channel-wise histogram equalization.
+
+    Agrs:
+        channel (np.ndarray): color channel image
+    
+    Returns:
+        np.ndarray: 
+    '''
     values = channel.copy()
     # replace nan values by 0
     values = np.nan_to_num(values)
+
     return exposure.equalize_hist(values)
 
 def reproject_crs(file_path, building_map):
     '''
-    Project the satelite image on the building map
+    Project the satelite image on the building map. Opens the satellite image from file.
+
+    Args:   
+        file_path (str): path to satellite image file 
+        building_map (GeoDataFrame): GeoDataFrame of building geometry 
+    
+    Returns:
+        MemoryFile: reprojected satellite images
     '''
     # calculate transformation, width and height of the reprojction
     with rasterio.open(file_path) as sat_image:
         transform, width, height = calculate_default_transform(sat_image.crs, building_map.crs, sat_image.width, sat_image.height,*sat_image.bounds)
+
         # update metadata 
         kwargs = sat_image.meta.copy()
         kwargs.update({
@@ -167,12 +267,28 @@ def reproject_crs(file_path, building_map):
                 
     return sat_image_repro
                 
-def img_process(city, building_map, path=IMAGE_DATA_PATH):
-    # TODO just one output with the rasterized buildings
+def img_process(city, building_map, path=params.IMAGE_DATA_PATH):
+    '''
+    Extracts and equalizes channels from GTiff satellite image data, applies reprojection 
+    and returns a dictionary with single channels.
+
+    Args:
+        city (str): name of the city to acquire OSM map for
+        building_map (geopandas.GeoDataFrame): GeodataFrame containing the building geometry
+        path (str): path of the satellite GTiff file
+
+    Returns:
+        dict: 
+            - 'R': red channel
+            - 'G': green channel
+            - 'B': blue channel
+            - 'NIR': near-infrared channel
+            - 'Buildings': buildings labels
+    '''
+
     file_path = os.path.join(path, f'{city}.tif')
 
-    # match sat_image CRS
-    #building_map = building_map.to_crs(sat_image.crs)
+    # match sat_image to building_map CRS
     sat_image_repro = reproject_crs(file_path, building_map)
 
     with sat_image_repro.open() as sat_image:
@@ -209,33 +325,53 @@ def img_process(city, building_map, path=IMAGE_DATA_PATH):
         # rasterize buildings
         building_raster = rasterize_buildings(sat_image, building_map)
         
-        # create dictionary with sat_image data for plotting
-        image_plot = {'Buildings overlay':building_map, 'Buildings':building_raster,'RGB':rgb, 'NIRGB':nirgb, 'R':r, 'G':g, 'B':b, 'NIR':nir}
-        
         # dictionary with sat_image data for saving
-        image_data = {'R':np.expand_dims(r, axis=0), 'G':np.expand_dims(g, axis=0), 'B':np.expand_dims(b, axis=0), 'NIR':np.expand_dims(nir, axis=0), 'Buildings':np.expand_dims(building_raster, axis=0)}
+        return {'R':np.expand_dims(r, axis=0), 'G':np.expand_dims(g, axis=0), 'B':np.expand_dims(b, axis=0), 'NIR':np.expand_dims(nir, axis=0), 'Buildings':np.expand_dims(building_raster, axis=0)}
         
-        print(f'r: {np.expand_dims(r, axis=0).shape}, buildings {np.expand_dims(building_raster, axis=0).shape}')
-        return image_plot, image_data
-            
-def run_acquisition():
+def run_acquisition(plot=False):
+    '''
+    Conducts the data acquisition by downloading satellite data and OSM building maps for all 
+    the cities in the parameter list. Applies reprojection to the satellite data according to 
+    the OSM map, opionally plots and saves the data packet of individual channels as .pkl.
+
+    Args:
+        plot (bool): plots the image data per city if set True
+
+    Returns:
+        None
+    '''
     
     # run data acquisition
-    for city in CITIES:
-        get_openstreetmap(city)
+    for city in params.CITIES:
+        # download OSM map if not available
+        if not os.path.exists(os.path.join(params.OSM_PATH, f'{city}.osm.pbf')):
+            get_openstreetmap(city)
+
         coord_bounds, building_map = get_buildings(city)
+
         # only if not yet downloaded
-        if not os.path.exists(os.path.join(IMAGE_DATA_PATH, f'{city}.tif')) : get_sat_img(coord_bounds, city)
-        plot, data = img_process(city, building_map)
+        if not os.path.exists(os.path.join(params.IMAGE_DATA_PATH, f'{city}.tif')): 
+            get_sat_img(coord_bounds, city)
+
+        data = img_process(city, building_map)
         # save dictionary as pkl
         save_data(data, city)
-        # call plot function:
-        #plot_image_data(plot)
+        
+        if plot:
+            # call plot function:
+            plot_image_data(data)
     
     # create test data
-    get_openstreetmap(TEST_CITY) # extract data for Berlin
-    coord_bounds, building_map = get_buildings(TEST_CITY, coord_bounds=TEST_COORDS)
-    if not os.path.exists(os.path.join(IMAGE_DATA_PATH, f'{TEST_CITY}.tif')) : get_sat_img(coord_bounds, TEST_CITY)
-    plot, data = img_process(TEST_CITY, building_map)
-    save_data(data, TEST_CITY)
-    #plot_image_data(plot)
+    get_openstreetmap(params.TEST_CITY) # extract data for Berlin
+    coord_bounds, building_map = get_buildings(params.TEST_CITY, coord_bounds=params.TEST_COORDS)
+
+    # obtain satellite image if not yet there
+    if not os.path.exists(os.path.join(params.IMAGE_DATA_PATH, f'{params.TEST_CITY}.tif')):
+        get_sat_img(coord_bounds, params.TEST_CITY)
+
+    data = img_process(params.TEST_CITY, building_map)
+    save_data(data, params.TEST_CITY)
+    
+    if plot:
+        # call plot function:
+        plot_image_data(data)

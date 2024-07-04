@@ -1,4 +1,5 @@
-# global parameters
+'''Module to define global parameters'''
+
 # data paths 
 OSM_PATH = r'../OSM_maps/'
 IMAGE_DATA_PATH = r'../image_data/'
@@ -19,7 +20,7 @@ BATCH_SIZE = 32
 TEST_SIZE = 1
 PATCH_SIZE = 128
 BUILDING_COVER = 0.3 # default parameter for desired coverage of data with buildings
-EPOCHS = 6
+EPOCHS = 5
 
 # ConvNet parameters
 CONVNET_TRAIN = 'ConvNet_train_metrics' # train metrics output file name

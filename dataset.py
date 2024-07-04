@@ -1,29 +1,63 @@
+'''Module to create a dataset for the satellite image data which was preprocessed in 
+data_acquisition. '''
+
+import os
+import random
+import pickle
 import torch
 from torch.utils.data import Dataset
-import os
-import pickle
-import random
 import numpy as np
 
-from params import *
+import params
 import augment
 
 
 class SegmentationDataset(Dataset):
     '''
-    Class to create a dataset out of satellite image bands for a given city, constructs image patches with corresponding building labels. The options training, validation and test are available.The data is saved and loaded dynamically,
+    Class to create a dataset out of satellite image bands for a given city, constructs image patches 
+    with corresponding building labels. The options training, validation and test are available. The 
+    data is saved and loaded dynamically, using a memmap format, in the dataloader.
     
     Args:
+        city (str): name of the city 
+        mode (str): type of dataset: train, validation or test
+        patch_size (int): size of square patches to extract for training
+        building_cover: percentage of patch covered with buildings
+        used_patches (list): for validation set: must know which patches have been used in the training set already
+        dataset_size (int): number of patches 
+        train_path (str): path for training dataset
+        val_path (str): path for validation dataset
+        test_path (str): path for test dataset
+        augmentations (callable): augmentations to be applied to the training data
 
     Attributes:
+        city (str): name of the city 
+        mode (str): type of dataset: train, validation or test
+        patch_size (int): size of square patches to extract for training
+        building_cover: percentage of patch covered with buildings
+        used_patches (list): for validation set: must know which patches have been used in the training set already
+        dataset_size (int): number of patches 
+        ch_num (int): number of channels in dataset
+        augmentations (callable): augmentations to be applied to the training data
+        dataset_path (str): path to dataset
+        data_file_path (str): path to memmap data file
+        label_path (str): path to memmap label file
 
     Methods:
-    
+        __len__(): Returns length of the dataset
+        __getitem__(item): returns data sample
+        cloud_check (patch, contr_thresh, bright_thresh): checks if amount of cloud cover is below a certain threshold
+        patch_check (patch_coord): checks for validation set, if patch was already used in training set
+        building_check (patch): checks if percentage of buildings is above a certain threshold in the patch
+        dynamic_save (dataset): savs the data as numpy memory map for lazy loading
+        create_dataset(): creates an entire dataset with train, validation and test section
     '''
 
-    def __init__(self, city, mode, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, used_patches=[], dataset_size=None, train_path=DATASET_TRAIN, val_path=DATASET_VAL, test_path=DATASET_TEST, augmentations = None):
-        # to check whether patch was already in the training set, to avoid data leakage
-        self.used_patches = used_patches
+    def __init__(self, city, mode, patch_size = params.PATCH_SIZE, building_cover = params.BUILDING_COVER, used_patches=None, dataset_size=None, train_path=params.DATASET_TRAIN, val_path=params.DATASET_VAL, test_path=params.DATASET_TEST, augmentations = None):
+
+        if used_patches is None:
+            used_patches = []
+        self.used_patches = used_patches # to check whether patch was already in the training set, to avoid data leakage
         self.city = city
         self.mode = mode
         self.patch_size=patch_size
@@ -32,6 +66,7 @@ class SegmentationDataset(Dataset):
         self.ch_num = 4
         self.augmentations = augmentations # apply augmentation to the dataset
 
+        # define type of the dataset
         if self.mode =='training':
             self.dataset_path = train_path
         elif self.mode == 'validation':
@@ -42,9 +77,11 @@ class SegmentationDataset(Dataset):
         # if the dataset already exists, don't recreate it
         self.data_file_path = os.path.join(self.dataset_path, f'{self.city}_data.mmap')
         self.label_path = os.path.join(self.dataset_path, f'{self.city}_label.mmap')
+
         # create the path dictionary based on existing files
         if os.path.exists(os.path.join(self.dataset_path, f'{self.city}_data.mmap')): 
             self.dataset = {'data': [self.data_file_path, (self.dataset_size, self.ch_num, self.patch_size, self.patch_size)], 'label': [self.label_path, (self.dataset_size, 1, self.patch_size, self.patch_size)] }
+        
         # if the dataset does not exist, create it
         else:
             self.dataset = self.create_dataset()
@@ -56,12 +93,15 @@ class SegmentationDataset(Dataset):
         Returns:
             int: length of the data tensor
         '''
+
         # return number of different images in one tensor (not bands)
         return self.dataset_size
    
     def __getitem__(self, item):
         '''
-        Obtain single data sample containing all bands dynamically from the saved tensor.
+        Obtain single data sample containing all bands dynamically from the saved tensor. Applies
+        an augmentation or an augmentatin pipeline to the sample with a certain probability if 
+        these parameters are set.
 
         Args:
             item (int): index of the desired data sample in the data tensor
@@ -78,9 +118,11 @@ class SegmentationDataset(Dataset):
         g_out = data[item][1]
         b_out = data[item][2]
         nir_out = data[item][3]
+
         # and from label
         label_data = np.memmap(self.dataset['label'][0],'float32', mode='r', shape=self.dataset['label'][1])
         label_out = label_data[item]
+        
         # create all, rgb and nirgb from single channels
         rgb_out = np.stack((r_out, g_out, b_out),axis=0)
         nirgb_out = np.stack((nir_out, g_out, b_out),axis=0)
@@ -91,7 +133,7 @@ class SegmentationDataset(Dataset):
 
         # apply augmentation if parameter set
         if self.augmentations is not None:
-            data_sample = augment.apply_augment(data_sample, self.augmentations) 
+            data_sample = augment.apply_augment(data_sample, self.augmentations)
 
         # convert into torch tensor
         for key, value in data_sample.items():
@@ -102,17 +144,18 @@ class SegmentationDataset(Dataset):
 
     def cloud_check(self, patch, contr_thresh=0.8, bright_thresh=0.8):
         '''
-        Simple cloud cover classifier: Check the image patch for cloud cover and return True if the cloud cover is above the threshold parameters.
+        Simple cloud cover classifier: Check the image patch for cloud cover and returns False if the cloud 
+        cover is above the threshold parameters.
 
         Args:
             patch (np.array): satellite image patch in NIR 
-            contr_threshold (float): contrast threshold, if crossed return True
-            bright_thresh (float): brighntess threshold, if crossed return True
+            contr_threshold (float): contrast threshold
+            bright_thresh (float): brighntess threshold
         
         Returns:
             bool: Is image patch cloud covered according to method?
         '''
-        # simple cloud classfier by checking RMS contrast: https://en.wikipedia.org/wiki/Contrast_(vision)#RMS_contrast
+
         # contrast is variance
         contrast = patch.var().item()
         # use also brightness since clouds appear bright in NIR
@@ -120,20 +163,18 @@ class SegmentationDataset(Dataset):
         if contrast < contr_thresh and brightness > bright_thresh:
             return False
         else:
-            #print(f'contrast: {contrast}')
-            #print(f'brightness: {brightness}')
             return True
     
     def patch_check(self, patch_coord):
         '''
         Check if image patch is already (partly) contained in the training set to avoid data leakage. 
+        Returns False if the case.
 
         Args:
             patch_coord (list): corner points of the patch in image coordinates
 
         Returns:
             bool: Patch either falls within the coordinates of a patch used in the training set or not. 
-
         '''
         patch_corners = [(patch_coord[0],patch_coord[1]), (patch_coord[0]+64,patch_coord[1]), (patch_coord[0],patch_coord[1]+64), (patch_coord[0]+64,patch_coord[1]+64)] # [(y,x), (y+64, x), (y, x+64), (y+64, x+64)]
         
@@ -147,24 +188,27 @@ class SegmentationDataset(Dataset):
     
     def building_check(self, patch):
         '''
-        Check if the percentage of the patch covered with buildings is below a threshold. Returns False in that case. The objective is to 
-        obtain a desired label distribution for the training set. 
+        Check if the percentage of the patch covered with buildings is below a threshold. 
+        Returns False in that case. Obtain a desired label distribution for the training 
+        set. 
 
         Args:
             patch (np.array): binary building label tensor
         
         Returns:
-            bool: True of the building coverpercentage larger equal the threshold
+            bool: True if the building cover percentage larger equal the threshold
         '''
+
         avg_build = patch.mean().item()
         if avg_build < self.building_cover: 
             return False
-        print(f'average building cover: {avg_build}') # TODO: DELETE
+
         return True
     
     def dynamic_save(self, dataset):
         '''
-        Helper function for dynamic saving of the output tensor via numpy memorymap. Allows to access indices without loading the entire tensor into memory.
+        Helper function for dynamic saving of the output tensor via numpy memorymap. Allows 
+        to access indices without loading the entire tensor into memory.
 
         Args:
             dataset (dict): dataset containing tensors of all the bands for a city
@@ -183,8 +227,10 @@ class SegmentationDataset(Dataset):
             file_path=os.path.join(self.dataset_path, f'{self.city}_{key}.mmap')
             dataset_map = np.memmap(file_path, dtype='float32', mode='w+', shape=dataset[key].shape)
             dataset_path[key]=[file_path, dataset[key].shape] 
-            dataset_map[:] = dataset[key][:] # write to memmap
-            dataset_map.flush() # flush to disc
+            # write to memmap
+            dataset_map[:] = dataset[key][:] 
+            # flush to disc
+            dataset_map.flush() 
 
         print(f'Dataset {self.city} {self.mode} written.')
         return dataset_path
@@ -200,7 +246,8 @@ class SegmentationDataset(Dataset):
         Returns:
             dict: path of the memory maps of the data tensor
         '''
-        images_path = os.path.join(IMAGE_DATA_PATH, f'{self.city}.pkl')
+        
+        images_path = os.path.join(params.IMAGE_DATA_PATH, f'{self.city}.pkl')
 
         # check if pkl data exists
         if not os.path.exists(images_path):
