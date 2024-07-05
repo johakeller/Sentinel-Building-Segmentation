@@ -127,7 +127,7 @@ class Trainer:
                 #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
                 
         # calculate, print and write metrics, return f1 score
-        return self.calculate_metrics(all_labels, all_predictions, self.train_output)
+        return self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
 
     def validation(self):
         '''
@@ -163,7 +163,7 @@ class Trainer:
 
                     # for visualization
                     inp = test_input[0]
-                    pred = prediction[0]
+                    pred = (prediction>params.PRED_THRESHOLD)[0]
                     lab = test_label[0]
 
                     # DELETE
@@ -182,7 +182,7 @@ class Trainer:
             visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, print and write metrics, return f1 score
-        return self.calculate_metrics(all_labels, all_predictions, self.val_output)
+        return self.calculate_metrics(all_labels, all_predictions, self.val_output, mode='Validation')
 
     def test(self):
         '''
@@ -228,9 +228,9 @@ class Trainer:
         #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, print and write metrics, return f1 score
-        return self.calculate_metrics(all_labels, all_predictions, self.val_output)
+        return self.calculate_metrics(all_labels, all_predictions, self.val_output, mode='Test')
 
-    def calculate_metrics(self, labels, predictions, output):
+    def calculate_metrics(self, labels, predictions, output, mode):
         '''
         Function that computes based on the probabilities for each class (processed model output)
         the average confidence per label, the value of the lowest confidence across all labels and 
@@ -251,7 +251,7 @@ class Trainer:
         precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='macro')
 
         # print and save metrics
-        message = self.description + f'\nAccuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
+        message = self.description + f'\n{mode} Accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
         write_results(message + '\n', output)
 

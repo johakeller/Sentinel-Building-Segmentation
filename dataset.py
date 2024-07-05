@@ -141,7 +141,6 @@ class SegmentationDataset(Dataset):
        
         return data_sample
 
-
     def cloud_check(self, patch, contr_thresh=0.8, bright_thresh=0.8):
         '''
         Simple cloud cover classifier: Check the image patch for cloud cover and returns False if the cloud 
@@ -257,8 +256,8 @@ class SegmentationDataset(Dataset):
             raw_data = pickle.load(fp)
 
             # get satellite image boundaries
-            image_height = raw_data['R'].shape[0]
-            image_width = raw_data['R'].shape[1]
+            image_height = raw_data['R'].shape[0]-1
+            image_width = raw_data['R'].shape[1]-1
 
             # output tensors for each band, dimensions: (N,C,H,W)
             bands_out = np.zeros((self.dataset_size, 4, self.patch_size, self.patch_size))

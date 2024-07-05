@@ -356,7 +356,7 @@ def run_acquisition(plot=False):
     '''
     
     # run data acquisition
-    for city in params.CITIES:
+    for city in params.DATA_CITIES:
         # download OSM map if not available
         if not os.path.exists(os.path.join(params.OSM_PATH, f'{city}.osm.pbf')):
             get_openstreetmap(city)

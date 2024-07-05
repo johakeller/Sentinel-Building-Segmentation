@@ -8,8 +8,9 @@ DATASET_VAL = r'../dataset/validation/'
 DATASET_TEST = r'../dataset/test/'
 OUT_PATH = r'../output/'
 
-CITIES = ['Aachen']
-#CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] 
+#CITIES = ['Aachen']
+DATA_CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] # cities to collect data from
+CITIES = ['Aachen', 'Leipzig', 'Lyon'] # cities to perform training on
 TEST_CITY = 'Berlin'
 TEST_COORDS = [13.294333, 52.454927, 13.500205, 52.574409] # (longitude west, latitude south, longitude east, latitude north)
 #CITIES = ['test_pbf']
@@ -38,7 +39,7 @@ UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation
 OUT_DIM=1
 
 # hyperparameters
-DROPOUT = [0.2, 0.4, 0.5] # dropout rates
+DROPOUT = [0.1, 0.08, 0.05] # dropout rates
 LEARNING_RATES = [1e-03, 1e-04, 1e-05] # learning rates
 L2_NORM = [1e-3, 1e-4] # L2 normalization (weight decay)
 BANDS = ['all','NIRGB', 'NIR'] # selection of channels
