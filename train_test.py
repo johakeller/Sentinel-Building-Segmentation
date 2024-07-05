@@ -18,6 +18,7 @@ def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
 
     for i in range(3):
         # Get the tensor from the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
+        
         r_channel_tensor = images[i][0]
 
         # Convert the tensor to a NumPy array
@@ -106,9 +107,12 @@ class Trainer:
                     self.optimizer.step()
 
                     # TODO delete 
-                    inp = train_input[0]
-                    pred = prediction[0]
-                    lab = train_label[0]
+                    inp = train_input[3]
+                    pred = prediction[3]
+                    lab = train_label[3]
+                    
+                    # TODO DELETE
+                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))

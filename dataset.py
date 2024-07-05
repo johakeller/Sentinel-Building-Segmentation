@@ -124,9 +124,9 @@ class SegmentationDataset(Dataset):
         label_out = label_data[item]
         
         # create all, rgb and nirgb from single channels
-        rgb_out = np.stack((r_out, g_out, b_out),axis=0)
-        nirgb_out = np.stack((nir_out, g_out, b_out),axis=0)
-        all_out = np.stack((nir_out,r_out, g_out, b_out),axis=0)
+        rgb_out = np.stack((data[item][0], data[item][1], data[item][2]),axis=0)
+        nirgb_out = np.stack((data[item][3], data[item][1], data[item][2]),axis=0)
+        all_out = np.stack((data[item][3],data[item][0], data[item][1], data[item][2]),axis=0)
 
         # output of the getitem method: dictionary with pytorch tensor per band
         data_sample = {"all": all_out,"RGB": rgb_out, "NIRGB": nirgb_out, "R": r_out, "G": g_out, 'B': b_out, 'NIR': nir_out, 'label': label_out}
@@ -202,7 +202,6 @@ class SegmentationDataset(Dataset):
         avg_build = patch.mean().item()
         if avg_build < self.building_cover: 
             return False
-
         return True
     
     def dynamic_save(self, dataset):
@@ -258,8 +257,8 @@ class SegmentationDataset(Dataset):
             raw_data = pickle.load(fp)
 
             # get satellite image boundaries
-            image_height = raw_data['R'].shape[1]-1
-            image_width = raw_data['R'].shape[2]-1
+            image_height = raw_data['R'].shape[0]
+            image_width = raw_data['R'].shape[1]
 
             # output tensors for each band, dimensions: (N,C,H,W)
             bands_out = np.zeros((self.dataset_size, 4, self.patch_size, self.patch_size))
@@ -281,11 +280,11 @@ class SegmentationDataset(Dataset):
                     patch_coord = (rnd_y, rnd_x)
 
                     # extract the same patch from all channels
-                    r_ch = raw_data['R'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
-                    g_ch = raw_data['G'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
-                    b_ch = raw_data['B'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
-                    nir_ch = raw_data['NIR'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
-                    buildings_ch = raw_data['Buildings'][:,patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
+                    r_ch = raw_data['R'][patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
+                    g_ch = raw_data['G'][patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
+                    b_ch = raw_data['B'][patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
+                    nir_ch = raw_data['NIR'][patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
+                    buildings_ch = raw_data['Buildings'][patch_coord[0]:patch_coord[0]+self.patch_size, patch_coord[1]:patch_coord[1]+self.patch_size]
                 
                     # for training mode: if no clouds prepare data for dictionary
                     if self.mode == 'training':

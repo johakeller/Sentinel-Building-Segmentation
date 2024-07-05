@@ -157,21 +157,15 @@ def plot_image_data(image_data, city):
     # create new customized colormap:[gradient from (red, green, blue, alpha), to (red, green, blue, alpha)]
     building_cmap = ListedColormap([(0, 0, 0, 0), (0.01, 0.18, 0.9, 1)])
     
-    # first dimension needs to be removed
-    r = np.squeeze(image_data['R'], axis=0)
-    g = np.squeeze(image_data['G'], axis=0)
-    b = np.squeeze(image_data['B'], axis=0)
-    nir = np.squeeze(image_data['NIR'], axis=0)
     rgb = np.dstack([image_data['RGB'][0],image_data['RGB'][1],image_data['RGB'][2]])
     nirgb = np.dstack([image_data['NIRGB'][0],image_data['NIRGB'][1],image_data['NIRGB'][2]])
-    buildings = np.squeeze(image_data['Buildings'], axis=0)
 
-    # plot overlapping buildings
-    ax_list[0][0].imshow(rgb, zorder=1)
-    ax_list[0][0].imshow(buildings, cmap=building_cmap, zorder=2)
+    # plot overlapping buildings TODO large vertcial margin
+    ax_list[0][0].imshow(rgb, zorder=1, aspect='equal')
+    ax_list[0][0].imshow(image_data['Buildings'], cmap=building_cmap, zorder=2, aspect='equal')
     
     # plot buildings
-    ax_list[0][1].imshow(buildings, cmap=building_cmap)
+    ax_list[0][1].imshow(image_data['Buildings'], cmap=building_cmap)
 
     # plot RGB
     ax_list[0][2].imshow(rgb)
@@ -180,26 +174,30 @@ def plot_image_data(image_data, city):
     ax_list[0][3].imshow(nirgb)
 
     # plot singe channels
-    ax_list[1][0].imshow(r, cmap='gray')
-    ax_list[1][1].imshow(g, cmap='gray')
-    ax_list[1][2].imshow(b, cmap='gray')
-    ax_list[1][3].imshow(nir, cmap='gray')
+    ax_list[1][0].imshow(image_data['R'], cmap='gray')
+    ax_list[1][1].imshow(image_data['G'], cmap='gray')
+    ax_list[1][2].imshow(image_data['B'], cmap='gray')
+    ax_list[1][3].imshow(image_data['NIR'], cmap='gray')
     
     titles = ['Buildings overlay', 'Buildings', 'RGB', 'NIRGB', 'R', 'G', 'B', 'NIR']
 
     # adjust plot
     for title, ax in zip(titles,ax_list.flatten()):
-        ax.set_title(title)
-        ax.title.set_fontsize(14)
         ax.axis('off')
         ax.set_aspect('equal')  
-        
-    plt.tight_layout()
-    plt.subplots_adjust(hspace=0.1)
-    
-    # save image to file
-    plt.savefig(os.path.join(params.OUT_PATH, f'{city}'), format='png')
+        ax.margins(x=0)
+        ax.margins(y=0)
 
+        # save subplot figure
+        extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(os.path.join(params.OUT_PATH, f'{city}_{title}.png'), bbox_inches=extent)
+
+        # set title
+        ax.set_title(title)
+        ax.title.set_fontsize(14)
+    
+    plt.subplots_adjust(hspace=0.1)
+    plt.tight_layout()
     # show plot
     plt.show() 
 
@@ -342,7 +340,7 @@ def img_process(city, building_map, path=params.IMAGE_DATA_PATH):
         building_raster = rasterize_buildings(sat_image, building_map)
         
         # dictionary with sat_image data for saving
-        return {'RGB': rgb, 'NIRGB': nirgb, 'R':np.expand_dims(r, axis=0), 'G':np.expand_dims(g, axis=0), 'B':np.expand_dims(b, axis=0), 'NIR':np.expand_dims(nir, axis=0), 'Buildings':np.expand_dims(building_raster, axis=0)}# new        
+        return {'RGB': rgb, 'NIRGB': nirgb, 'R':r, 'G':g, 'B':b, 'NIR':nir, 'Buildings':building_raster}    
 
 def run_acquisition(plot=False):
     '''
