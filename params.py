@@ -1,4 +1,4 @@
-'''Module to define global parameters'''
+'''Module to define global parameters.'''
 
 # data paths 
 OSM_PATH = r'../OSM_maps/'
@@ -38,11 +38,9 @@ UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation
 OUT_DIM=1
 
 # hyperparameters
-DROPOUT = [0.1, 0.2, 0.4] # dropout rates
+DROPOUT = [0.2, 0.4, 0.5] # dropout rates
 LEARNING_RATES = [1e-03, 1e-04, 1e-05] # learning rates
-#LEARNING_RATES = [1e-01, 1e-02, 1e-03] # learning rates
-L2_NORM = [1e-1, 1e-2] # L2 normalization (weight decay)
-#L2_NORM = [1e-2, 1e-3] # L2 normalization (weight decay)
+L2_NORM = [1e-3, 1e-4] # L2 normalization (weight decay)
 BANDS = ['all','NIRGB', 'NIR'] # selection of channels
 
 # augmentation parameters

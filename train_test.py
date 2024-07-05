@@ -112,7 +112,7 @@ class Trainer:
                     lab = train_label[3]
                     
                     # TODO DELETE
-                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
@@ -124,7 +124,7 @@ class Trainer:
                 print(message)
 
                 # TODO DELETE
-                visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
                 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.train_output)
@@ -144,9 +144,9 @@ class Trainer:
 
             # statistics 
             prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} validation', position=0, leave=True)
-            #inp = None
-            #pred = None
-            #lab = None
+            inp = None
+            pred = None
+            lab = None
 
             with torch.no_grad():
                 for data in dataloader: # go through data in each data loader
@@ -162,9 +162,12 @@ class Trainer:
                     avg_loss += loss.item()
 
                     # for visualization
-                    #inp = test_input[0]
-                    #pred = prediction[0]
-                    #lab = test_label[0]
+                    inp = test_input[0]
+                    pred = prediction[0]
+                    lab = test_label[0]
+
+                    # DELETE
+                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
@@ -176,7 +179,7 @@ class Trainer:
             print(message)
 
             # DELETE
-            #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+            visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.val_output)
