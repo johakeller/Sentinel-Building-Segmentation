@@ -18,9 +18,7 @@ class ConvNet(nn.Module):
             nn.Dropout(dropout_rate), # regularization
             nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
             nn.Dropout(dropout_rate), # regularization
-            nn.Conv2d(128, 256, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Dropout(dropout_rate), # regularization
-            nn.Conv2d(256, 1, kernel_size=1, padding=0)
+            nn.Conv2d(128, 1, kernel_size=1, padding=0)
         )
         self.name = 'ConvNet' # the model has a name
 

@@ -8,12 +8,11 @@ DATASET_VAL = r'../dataset/validation/'
 DATASET_TEST = r'../dataset/test/'
 OUT_PATH = r'../output/'
 
-#CITIES = ['Aachen']
+#DATA_CITIES = ['Lyon']
 DATA_CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] # cities to collect data from
 CITIES = ['Aachen', 'Leipzig', 'Lyon'] # cities to perform training on
 TEST_CITY = 'Berlin'
 TEST_COORDS = [13.294333, 52.454927, 13.500205, 52.574409] # (longitude west, latitude south, longitude east, latitude north)
-#CITIES = ['test_pbf']
 
 # dataset parameters
 TRAIN_SIZE = 1280
@@ -29,18 +28,18 @@ CONVNET_TRAIN = 'ConvNet_train_metrics' # train metrics output file name
 CONVNET_VAL = 'ConvNet_val_metrics' # validation metrics output file name
 CONVNET_AUG_TRAIN = 'ConvNet_train_augment_metrics' # train metrics augmentation 
 CONVNET_AUG_VAL = 'ConvNet_test_augment_metrics' # validation metrics augmentation 
-PRED_THRESHOLD = 0.5 # threshold for predicting a pixel as 'building'
 
-# UNet parameters
+# UNet parametersy. 
 UNET_TRAIN = 'UNet_train_metrics' # train metrics output file name
 UNET_VAL = 'UNet_val_metrics' # validation metrics output file name
 UNET_AUG_TRAIN = 'UNet_train_augment_metrics' # train metrics augmentation 
 UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation 
-OUT_DIM=1
+OUT_DIM = 1 # output dimension
 
 # hyperparameters
-DROPOUT = [0.1, 0.08, 0.05] # dropout rates
-LEARNING_RATES = [1e-03, 1e-04, 1e-05] # learning rates
+PRED_THRESHOLD = 0.5 # threshold for predicting a pixel as 'building'
+DROPOUT = [0.05, 0.03, 0.01] # dropout rates
+LEARNING_RATES = [1e-03, 1e-04, 5e-05] # learning rates
 L2_NORM = [1e-3, 1e-4] # L2 normalization (weight decay)
 BANDS = ['all','NIRGB', 'NIR'] # selection of channels
 

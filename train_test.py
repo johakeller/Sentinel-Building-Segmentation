@@ -167,7 +167,7 @@ class Trainer:
                     lab = test_label[0]
 
                     # DELETE
-                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
@@ -177,9 +177,6 @@ class Trainer:
             # average loss per city
             message = f'Valdiation {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
             print(message)
-
-            # DELETE
-            visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.val_output, mode='Validation')
@@ -251,7 +248,7 @@ class Trainer:
         precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='macro')
 
         # print and save metrics
-        message = self.description + f'\n{mode} Accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
+        message = self.description + f'\n{mode} accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
         write_results(message + '\n', output)
 

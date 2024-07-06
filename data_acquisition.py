@@ -19,7 +19,7 @@ import numpy as np
 
 import params
 
-def get_openstreetmap(city, osm_path=params.OSM_PATH):
+def get_openstreetmap(city, osm_path=params.OSM_PATH, coord_bounds=None):
     '''
     Function to acquire Open Street Map file for the city and save it in the provided path.
     If the path does not exist, it creates it.
@@ -151,7 +151,7 @@ def plot_image_data(image_data, city):
         None
     '''
 
-    fig = plt.figure(figsize=(16,10))
+    fig = plt.figure(figsize=(32,20))
     ax_list = fig.subplots(2,4)
 
     # create new customized colormap:[gradient from (red, green, blue, alpha), to (red, green, blue, alpha)]

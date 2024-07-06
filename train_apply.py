@@ -22,7 +22,7 @@ def train_apply(model_name = None):
     '''
     dataset = DataSplit() # init dataloader for train, valdiation, test
     # saves the models with hperparameters and performance for optimization
-    performance_dict = {}
+    performance = []
     # hyperparameter selection: channels
     for band in BANDS:
         # hyperparameter selection: dropout
@@ -39,27 +39,33 @@ def train_apply(model_name = None):
                     model = UNet(band,OUT_DIM, DROPOUT[0])
                     train_output = UNET_TRAIN
                     val_output = UNET_VAL
-                # start training and testing
+                # start training and validation
                 trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, lr=lr, dropout=DROPOUT[0], model_name=model.name)
                 _ = trainer.training()
                 f1 = trainer.validation()
-                # insert performance into dictionary
-                performance_dict[trainer.description]= [f1, trainer]
-    
-    # find best hyperparameters
-    max_score = 0.0
-    for value in performance_dict.values():
-        if value[0] > max_score:
-            # obtain trainer
-            trainer = value[1]
-            
-            # write and display hyperparameter info
-            message = f'Hyperparameters selected with F1 score of {value[0]:.2f}: ' + trainer.description
-            print(message)
-            write_results(message, trainer.val_output)
 
-            # run test
-            f1 = trainer.test()
+                # insert performance into list
+                performance.append([f1, trainer])
+    
+    # save best performance
+    max_score = 0.0
+    best_trainer = None
+
+    # find best hyperparameters
+    for value in performance:
+        if value[0] > max_score:
+            # update max_score
+            max_score = value[0]
+            # update trainer (contains model)
+            best_trainer = value[1]
+            
+    # write and display hyperparameter info
+    message = f'Hyperparameters selected with F1 score of {max_score:.2f}: ' + best_trainer.description +'\n'
+    print(message)
+    write_results(message, trainer.val_output)
+
+    # run test
+    f1 = trainer.test()
 
 def augment_apply(model_name = None):
     '''
