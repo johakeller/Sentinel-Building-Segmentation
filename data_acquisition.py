@@ -10,7 +10,6 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 from rasterio.features import rasterize
 from rasterio.io import MemoryFile
 import rasterio
-import geowombat # import is needed to solve bug: training gets stuck without
 import pyrosm
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
@@ -19,7 +18,7 @@ import numpy as np
 
 import params
 
-def get_openstreetmap(city, osm_path=params.OSM_PATH, coord_bounds=None):
+def get_openstreetmap(city, osm_path=params.OSM_PATH):
     '''
     Function to acquire Open Street Map file for the city and save it in the provided path.
     If the path does not exist, it creates it.
@@ -284,7 +283,7 @@ def reproject_crs(file_path, building_map):
 def img_process(city, building_map, path=params.IMAGE_DATA_PATH):
     '''
     Extracts and equalizes channels from GTiff satellite image data, applies reprojection 
-    and returns a dictionary with single channels.
+    and returns a dictionary with single (combined) channels.
 
     Args:
         city (str): name of the city to acquire OSM map for
@@ -292,7 +291,9 @@ def img_process(city, building_map, path=params.IMAGE_DATA_PATH):
         path (str): path of the satellite GTiff file
 
     Returns:
-        dict: 
+        dict:
+            - 'RGB': rgb channel
+            - 'NIRGB': nirgb channel 
             - 'R': red channel
             - 'G': green channel
             - 'B': blue channel

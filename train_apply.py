@@ -20,27 +20,37 @@ def train_apply(model_name = None):
     '''
     Applies the hyperparameter optimization
     '''
+    if model_name == 'ConvNet':
+        learning_rates = CONVNET_LEARNING_RATES
+        l2_norm = CONVNET_L2_NORM
+        dropout = CONVNET_DROPOUT
+    elif model_name == 'UNet':
+        learning_rates = UNET_LEARNING_RATES
+        l2_norm = UNET_L2_NORM
+        dropout = UNET_DROPOUT
     dataset = DataSplit() # init dataloader for train, valdiation, test
     # saves the models with hperparameters and performance for optimization
     performance = []
     # hyperparameter selection: channels
     for band in BANDS:
         # hyperparameter selection: dropout
-        for lr in LEARNING_RATES:
+        for lr in learning_rates:
             # hyperparameter selection: weight decays
-            for weight_decay in L2_NORM:
+            for weight_decay in l2_norm:
 
                 # define model and its parameters
                 if model_name == 'ConvNet':
-                    model = ConvNet(band, DROPOUT[0])
+                    model = ConvNet(band, dropout)
                     train_output = CONVNET_TRAIN
                     val_output = CONVNET_VAL
+                    class_weight = CONVNET_CLASS_WEIGHT
                 elif model_name == 'UNet':
-                    model = UNet(band,OUT_DIM, DROPOUT[0])
+                    model = UNet(band,OUT_DIM, dropout)
                     train_output = UNET_TRAIN
                     val_output = UNET_VAL
+                    class_weight = UNET_CLASS_WEIGHT
                 # start training and validation
-                trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, lr=lr, dropout=DROPOUT[0], model_name=model.name)
+                trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, lr=lr, dropout=dropout, model_name=model.name, class_weight=class_weight)
                 _ = trainer.training()
                 f1 = trainer.validation()
 

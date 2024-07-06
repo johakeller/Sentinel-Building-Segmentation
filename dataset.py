@@ -137,7 +137,7 @@ class SegmentationDataset(Dataset):
 
         # convert into torch tensor
         for key, value in data_sample.items():
-            data_sample[key] = torch.from_numpy(value)
+            data_sample[key] = torch.from_numpy(np.copy(value))
        
         return data_sample
 
@@ -235,8 +235,12 @@ class SegmentationDataset(Dataset):
         
     def create_dataset(self):
         '''
-        Initiate a new dataset given the satellite imagery for a city. Extracts randomly a predefined number of patches of predefined size from all bands in parallel and 
-        saves them dynamically to disc in a tensor with dimensions: (N,C,H,W). The corresponding parameters can be found in params.py.
+        Initiate a new dataset given the satellite imagery for a city. Extracts randomly 
+        a predefined number of patches of predefined size from all bands in parallel and 
+        saves them dynamically to disc in a tensor with dimensions: (N,C,H,W). Patches 
+        are checked to have no cloud cover, sufficient builings, and for the vailidation 
+        set to be not present in the training set. The corresponding parameters can be 
+        found in params.py.
 
         Raises:
             FileNotFoundError: Satellite image data for the city is not found in the given path
@@ -299,9 +303,9 @@ class SegmentationDataset(Dataset):
                             # set loop parameter
                             keep_looking = False
 
-                    # validation mode: check for cloud cover, also check if patch was not used in training, don't check for min. building cover
+                    # validation mode: check for cloud cover, also check if patch was not used in training, also check for min. building cover
                     else:
-                        if self.cloud_check(nir_ch) and self.patch_check(patch_coord):
+                        if self.cloud_check(nir_ch) and self.patch_check(patch_coord) and self.building_check(buildings_ch):
                             # fill in output tensors: bands_out dim = (N,C,H,W)
                             bands_out[i][0] = r_ch
                             bands_out[i][1] = g_ch

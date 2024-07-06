@@ -52,7 +52,7 @@ def write_results(output, file):
 
 class Trainer:
 
-    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None):
+    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
@@ -64,7 +64,7 @@ class Trainer:
         self.train_output = train_output
         self.val_output = val_output
         self.optimizer = optim.Adam(model.parameters(), lr =lr, weight_decay=weight_decay)
-        self.criterion = nn.BCEWithLogitsLoss(reduction="mean")
+        self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
 
     
     def training(self):
@@ -99,6 +99,7 @@ class Trainer:
 
                     prediction = self.model.forward(train_input) # forward pass
                     loss = self.criterion(prediction, train_label) # calculate error
+                    print('loss calculated')
                     avg_loss += loss.item()
 
                     # backpropagation
@@ -112,10 +113,11 @@ class Trainer:
                     lab = train_label[3]
                     
                     # TODO DELETE
-                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
+                    # create binary predictions out of probabilities by thresholding
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
 
                 prog_bar.close()             
@@ -143,7 +145,7 @@ class Trainer:
         for city, dataloader in self.val_loader.items(): # go through the dictionary validation loader (for each city)
 
             # statistics 
-            prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} validation', position=0, leave=True)
+            prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} validation', position=0, leave=False)
             inp = None
             pred = None
             lab = None
