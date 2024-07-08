@@ -41,8 +41,8 @@ def main(args):
     if len(args) == 0:
         print('Run entire pipeline: acquisition, train of UNet, training of ConvNet, data augmentation with UNet, data augmentation with ConvNet')
         data_acquisition.run_acquisition(plot=False)
-        train_apply.train_apply('UNet')
-        train_apply.train_apply('ConvNet')
+        train_apply.train_apply_hyper('UNet')
+        train_apply.train_apply_hyper('ConvNet')
         train_apply.augment_apply('UNet')
         train_apply.augment_apply('ConvNet')
 
@@ -62,9 +62,13 @@ def main(args):
                 # augmentation train test
                 print('Run data augmentation with UNet.')
                 train_apply.augment_apply('UNet')
-            else:
+            elif args.index('unet') + 1 < len(args) and args[args.index('unet')+1] == 'hyper':
                 # normal hyperparameter optimization
                 print('Run hyperparamter optimization with UNet.')
+                train_apply.train_apply_hyper('UNet')
+            else:
+                # no hyperparameter optimization
+                print('Run simple training, validation with UNet.')
                 train_apply.train_apply('UNet')
 
         # ConvNet
@@ -73,9 +77,13 @@ def main(args):
                 # augmentation train test
                 print('Run data augmentation with ConvNet.')
                 train_apply.augment_apply('ConvNet')
-            else:
+            elif args.index('convnet') + 1 < len(args) and args[args.index('convnet')+1] == 'hyper':
                 # normal hyperparameter optimization
                 print('Run hyperparamter optimization with ConvNet.')
+                train_apply.train_apply_hyper('ConvNet')
+            else:
+                # no hyperparameter optimization
+                print('Run simple training, validation with ConvNet.')
                 train_apply.train_apply('ConvNet')
     else:
         print('Image data is not available, please run acquisition first: $ python main.py <acq>')
@@ -86,13 +94,13 @@ if __name__ == "__main__":
     given_args = sys.argv[1:]
 
     # valid arguments
-    val_args = ['acq', 'plot', 'unet', 'convnet', 'augment']
+    val_args = ['acq', 'plot', 'unet', 'convnet', 'augment', 'hyper']
 
     # check arguments are valid 
     if len(given_args) != 0:
         for arg in given_args:
             if arg not in val_args:
-                print('Usage: $ python main.py [acq] [plot]/[unet] [augment]/[convnet] [augment]')
+                print('Usage: $ python main.py [acq] [plot]/([unet] [hyper]/[augment])/[convnet] [augment]')
                 sys.exit(1)
 
     main(given_args)

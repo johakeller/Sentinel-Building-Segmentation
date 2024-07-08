@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -64,6 +65,7 @@ class Trainer:
         self.train_output = train_output
         self.val_output = val_output
         self.optimizer = optim.Adam(model.parameters(), lr =lr, weight_decay=weight_decay)
+        self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.5) 
         self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
 
     
@@ -77,8 +79,8 @@ class Trainer:
         # set model to train mode
         self.model.train()
         for epoch in range(self.epochs): # all epochs
-            all_labels = torch.tensor([])
-            all_predictions = torch.tensor([])
+            all_labels = torch.Tensor([])
+            all_predictions = torch.Tensor([])
 
             for city, dataloader in self.train_loader.items(): # go through the dictionary train loader (for each city)
                 # statistics 
@@ -99,7 +101,6 @@ class Trainer:
 
                     prediction = self.model.forward(train_input) # forward pass
                     loss = self.criterion(prediction, train_label) # calculate error
-                    print('loss calculated')
                     avg_loss += loss.item()
 
                     # backpropagation
@@ -113,12 +114,15 @@ class Trainer:
                     lab = train_label[3]
                     
                     # TODO DELETE
-                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
                     # create binary predictions out of probabilities by thresholding
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
+
+                # learning rate scheduler step
+                self.lr_scheduler.step(avg_loss/len(dataloader))
 
                 prog_bar.close()             
                 # average loss after each city
@@ -127,9 +131,10 @@ class Trainer:
 
                 # TODO DELETE
                 #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
-                
+ 
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
+
 
     def validation(self):
         '''
@@ -174,7 +179,7 @@ class Trainer:
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
-                    
+           
             prog_bar.close()
             # average loss per city
             message = f'Valdiation {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'

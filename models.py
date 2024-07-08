@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class ConvNet(nn.Module):
-    def __init__(self, bands, dropout_rate):
+    def __init__(self, bands, dropout_rate, batch_norm=True):
         super(ConvNet, self).__init__()
         # select correct input dimension corresponding to number of bands
         if bands == 'all':
@@ -12,14 +12,29 @@ class ConvNet(nn.Module):
         else:
             self.channels_in = 1
 
-        self.model = nn.Sequential(
-            nn.Conv2d(self.channels_in, 32, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Dropout(dropout_rate), # regularization
-            nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Dropout(dropout_rate), # regularization
-            nn.Conv2d(128, 1, kernel_size=1, padding=0)
-        )
+        # with batch norm
+        if batch_norm:
+            self.model = nn.Sequential(
+                nn.Conv2d(self.channels_in, 32, kernel_size=3, padding=1), nn.ReLU(),
+                nn.Dropout(dropout_rate), # regularization
+                nn.BatchNorm2d(32), # regularization
+                nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
+                nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
+                nn.Dropout(dropout_rate), # regularization
+                nn.BatchNorm2d(128), # regularization
+                nn.Conv2d(128, 1, kernel_size=1, padding=0)
+            )
+        # without batch norm
+        else:
+            self.model = nn.Sequential(
+                nn.Conv2d(self.channels_in, 32, kernel_size=3, padding=1), nn.ReLU(),
+                nn.Dropout(dropout_rate), # regularization
+                nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
+                nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
+                nn.Dropout(dropout_rate), # regularization
+                nn.Conv2d(128, 1, kernel_size=1, padding=0)
+            )   
+
         self.name = 'ConvNet' # the model has a name
 
     def forward(self, x):
