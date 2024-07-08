@@ -50,7 +50,19 @@ def train_apply_hyper(model_name = None):
                     val_output = UNET_VAL
                     class_weight = UNET_CLASS_WEIGHT
                 # start training and validation
-                trainer = Trainer(model, train_loader=dataset.train_loader, val_loader=dataset.val_loader, test_loader=dataset.test_loader, train_output=train_output, val_output=val_output, band=band, weight_decay=weight_decay, lr=lr, dropout=dropout, model_name=model.name, class_weight=class_weight)
+                trainer = Trainer(
+                    model, 
+                    train_loader=dataset.train_loader, 
+                    val_loader=dataset.val_loader, 
+                    test_loader=dataset.test_loader, 
+                    train_output=train_output, 
+                    val_output=val_output, 
+                    band=band, 
+                    weight_decay=weight_decay, 
+                    lr=lr, dropout=dropout, 
+                    model_name=model.name, 
+                    class_weight=class_weight, 
+                    lr_scheduler=True)
                 _ = trainer.training()
                 f1 = trainer.validation()
 
@@ -87,6 +99,7 @@ def augment_apply(model_name = None):
                           'random contrast':augment.rnd_contrast, 
                           'horizontal flip':augment.h_flip, 
                           'random zoom':augment.rnd_zoom, 
+                          'noise and contrast': [augment.add_gaussian_noise, augment.rnd_contrast],
                           'all augmentations':[augment.h_flip, augment.rnd_zoom, augment.rnd_contrast, augment.add_gaussian_noise]}
 
     # for all single augmentations and a combination of these augmentations
@@ -126,7 +139,8 @@ def augment_apply(model_name = None):
             lr=learning_rates, 
             dropout=dropout, 
             model_name=model.name,
-            class_weight=class_weight
+            class_weight=class_weight,
+            lr_scheduler=True
             )
         
         # change description

@@ -31,7 +31,7 @@ CONVNET_VAL = 'ConvNet_hyper_val_metrics' # validation metrics output file name
 CONVNET_SIMPLE_TRAIN = 'ConvNet_train_metrics' # train metrics output file name (no hyperparameter optimization)
 CONVNET_SIMPLE_VAL = 'ConvNet_val_metrics' # validation metrics output file name (no hyperparameter optimization)
 CONVNET_AUG_TRAIN = 'ConvNet_train_augment_metrics' # train metrics augmentation 
-CONVNET_AUG_VAL = 'ConvNet_test_augment_metrics' # validation metrics augmentation 
+CONVNET_AUG_VAL = 'ConvNet_val_augment_metrics' # validation metrics augmentation 
 
 # ConvNet hyperparameters
 CONVNET_DROPOUT = 0.25 # ConvNet
@@ -45,7 +45,7 @@ UNET_VAL = 'UNet_hyper_val_metrics' # validation metrics output file name
 UNET_SIMPLE_TRAIN = 'UNet_train_metrics' # train metrics output file name (no hyperparameter optimization)
 UNET_SIMPLE_VAL = 'UNet_val_metrics' # validation metrics output file name (no hyperparameter optimization)
 UNET_AUG_TRAIN = 'UNet_train_augment_metrics' # train metrics augmentation 
-UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation 
+UNET_AUG_VAL = 'UNet_val_augment_metrics' # validation metrics augmentation 
 OUT_DIM = 1 # output
 
 # UNet hyperparameters

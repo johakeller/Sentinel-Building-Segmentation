@@ -53,7 +53,7 @@ def write_results(output, file):
 
 class Trainer:
 
-    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0):
+    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0, lr_scheduler=False):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
@@ -65,7 +65,10 @@ class Trainer:
         self.train_output = train_output
         self.val_output = val_output
         self.optimizer = optim.Adam(model.parameters(), lr =lr, weight_decay=weight_decay)
-        self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.5) 
+        if lr_scheduler:
+            self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.5) 
+        else:
+            self.lr_scheduler = None
         self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
 
     
@@ -114,15 +117,15 @@ class Trainer:
                     lab = train_label[3]
                     
                     # TODO DELETE
-                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
                     # create binary predictions out of probabilities by thresholding
-                    all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
-
+                    all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).flatten().detach()))
                 # learning rate scheduler step
-                self.lr_scheduler.step(avg_loss/len(dataloader))
+                if self.lr_scheduler is not None:
+                    self.lr_scheduler.step()
 
                 prog_bar.close()             
                 # average loss after each city
@@ -170,11 +173,11 @@ class Trainer:
 
                     # for visualization
                     inp = test_input[0]
-                    pred = (prediction>params.PRED_THRESHOLD)[0]
+                    pred = prediction[0]
                     lab = test_label[0]
 
                     # DELETE
-                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
@@ -250,9 +253,12 @@ class Trainer:
                 id_r (int): row index of the lowest confidence value
                 id_c (int): column index of the lowest confidence value
         '''
+        # convert to ints
+        labels = labels.to(torch.int)
+        predictions = predictions.to(torch.int)
 
         accuracy = accuracy_score(labels, predictions)
-        precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='macro')
+        precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='macro', zero_division=0)
 
         # print and save metrics
         message = self.description + f'\n{mode} accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
