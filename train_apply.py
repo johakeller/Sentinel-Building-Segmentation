@@ -147,6 +147,7 @@ def augment_apply(model_name = None):
         trainer.description = f'{model_name}, agumentation: {descr}'
         _ = trainer.training()
         _ = trainer.validation()
+        _ = trainer.test()
 
 def train_apply(model_name = None):
     '''
@@ -189,8 +190,11 @@ def train_apply(model_name = None):
         model_name=model.name,
         class_weight=class_weight
         )
+    # change description
+    trainer.description = f'{model_name}, bands: {band}, learning rate: {learning_rates}'
     _ = trainer.training()
     _ = trainer.validation()
+    _ = trainer.test()
 
 
 

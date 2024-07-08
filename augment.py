@@ -40,7 +40,7 @@ def rnd_contrast(data_sample, probability=params.PROB):
         for band in bands:
 
             # change intensity range randomly
-            upper_bound = np.random.randint(1,128) 
+            upper_bound = np.random.randint(1,230) 
             lower_bound = np.random.randint(0, upper_bound)
 
             # extract each band from the sample

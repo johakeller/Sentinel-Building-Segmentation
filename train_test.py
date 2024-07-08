@@ -117,7 +117,7 @@ class Trainer:
                     lab = train_label[3]
                     
                     # TODO DELETE
-                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, train_label.flatten().detach()))
@@ -177,7 +177,7 @@ class Trainer:
                     lab = test_label[0]
 
                     # DELETE
-                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
