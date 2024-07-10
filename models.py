@@ -46,14 +46,15 @@ class UNet(nn.Module):
             super(UNet.Encoder, self).__init__()
             self.conv_1 = nn.Conv2d(in_dimension, out_dimension, kernel_size=3, padding=1)
             self.conv_2 = nn.Conv2d(out_dimension, out_dimension, kernel_size=3, padding=1)
+            self.batch_norm = nn.BatchNorm2d(out_dimension) # regularization
             self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
             self.dropout = nn.Dropout(dropout_rate) # regularization
             self.relu = nn.ReLU(inplace=True)
             self.residual = None
         
         def forward(self, x):
-            x = self.relu(self.conv_1(x))
-            self.residual = self.relu(self.conv_2(x)) # take residual before max_pool
+            x = self.batch_norm(self.relu(self.conv_1(x)))
+            self.residual = self.relu(self.batch_norm(self.conv_2(x))) # take residual before max_pool
             x = self.max_pool(self.residual)
             return x
 
@@ -64,12 +65,13 @@ class UNet(nn.Module):
             self.conv_1 = nn.Conv2d(2*out_dimension, out_dimension, kernel_size=3, padding=1)
             self.conv_2 = nn.Conv2d(out_dimension, out_dimension, kernel_size=3, padding=1)
             self.dropout = nn.Dropout(dropout_rate) # regularization
+            self.batch_norm = nn.BatchNorm2d(out_dimension) # regularization
             self.relu = nn.ReLU(inplace=True)
         
         def forward(self, x, residual):
-            x = self.up_conv(x)
+            x = self.batch_norm(self.up_conv(x))
             x = self.relu(self.conv_1(torch.cat([x, residual], dim=1))) 
-            x = self.relu(self.conv_2(x))
+            x = self.relu(self.batch_norm(self.conv_2(x)))
             return x
 
     def __init__(self, bands, channels_out, dropout_rate):

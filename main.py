@@ -2,6 +2,8 @@
 
 import os
 import sys
+import torch
+
 import params
 import data_acquisition
 import train_apply
@@ -102,5 +104,11 @@ if __name__ == "__main__":
             if arg not in val_args:
                 print('Usage: $ python main.py [acq] [plot]/([unet] [hyper]/[augment])/[convnet] [augment]')
                 sys.exit(1)
+    
+    # TODO BUG solved
+    # deal with a threading bug
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    torch.multiprocessing.set_start_method('spawn')
 
     main(given_args)

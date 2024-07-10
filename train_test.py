@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -67,6 +67,7 @@ class Trainer:
         self.optimizer = optim.Adam(model.parameters(), lr =lr, weight_decay=weight_decay)
         if lr_scheduler:
             self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.5) 
+            #self.lr_scheduler = CosineAnnealingLR(self.optimizer, T_max=33, eta_min=5e-6)
         else:
             self.lr_scheduler = None
         self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
@@ -96,33 +97,61 @@ class Trainer:
                 lab = None
 
                 for data in dataloader: # go through data in each data loader
-                    # update prog_bar
-                    prog_bar.update(dataloader.batch_size)
+                    try:
+                        # update prog_bar
+                        prog_bar.update(dataloader.batch_size)
+                        #print('new batch:')
 
-                    train_input = data[self.band]
-                    train_label = data['label']
+                        train_input = data[self.band]
+                        train_label = data['label']
+                        
+                        #print('before forward pass')
+                        prediction = self.model.forward(train_input) # forward pass
+                        #print('forward pass')
+                        
+                        # TODO DELTE DEBUGGING
+                        #if torch.isnan(prediction).any() or torch.isnan(train_label).any():
+                        #    print("NaN value found in prediction or label")
 
-                    prediction = self.model.forward(train_input) # forward pass
-                    loss = self.criterion(prediction, train_label) # calculate error
-                    avg_loss += loss.item()
+                        #if torch.isinf(prediction).any() or torch.isinf(train_label).any():
+                        #    print("NaN value found in prediction or label")
 
-                    # backpropagation
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
+                        # Check gradients
+                        #for name, param in self.model.named_parameters():
+                        #    if param.grad is not None:
+                        #        if torch.isinf(param.grad).any() or torch.isnan(param.grad).any():
+                        #            print(f"Inf or NaN gradient in layer: {name}")
+                        #    else:
+                        #        print(f"Layer: {name} has no gradient")
 
-                    # TODO delete 
-                    inp = train_input[3]
-                    pred = prediction[3]
-                    lab = train_label[3]
-                    
-                    # TODO DELETE
-                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
-                    # for metrics (remove unnecessary first dimension)
-                    all_labels = torch.cat((all_labels, train_label.flatten().detach()))
-                    # create binary predictions out of probabilities by thresholding
-                    all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).flatten().detach()))
+                        loss = self.criterion(prediction, train_label) # calculate error
+                        avg_loss += loss.item()
+                        #print(round(loss.item(),3))
+
+                        # TODO DELETE
+                        #inp = train_input[3]
+                        #pred = prediction[3]
+                        #lab = train_label[3]
+                        #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+
+                        # backpropagation
+                        self.optimizer.zero_grad()
+                        loss.backward()
+                        #print('backward pass')
+                        self.optimizer.step()
+                        #print('after optimizer step')
+
+                        # for metrics (remove unnecessary first dimension)
+                        all_labels = torch.cat((all_labels, train_label.flatten().detach()))
+                        # create binary predictions out of probabilities by thresholding
+                        all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).flatten().detach()))
+                
+                    except Exception as e:
+                        print(f"Error in training loop: {e}")
+                        # Optionally raise the error to stop training or handle differently
+                        raise e
+
                 # learning rate scheduler step
                 if self.lr_scheduler is not None:
                     self.lr_scheduler.step()

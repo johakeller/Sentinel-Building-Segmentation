@@ -11,9 +11,9 @@ from train_test import *
 class DataSplit():
     def __init__(self, city_list=CITIES, train_size = TRAIN_SIZE, val_size = VAL_SIZE, test_size=TEST_SIZE, batch_size=BATCH_SIZE, patch_size = PATCH_SIZE, building_cover = BUILDING_COVER, augmentations=None):
         # create Dataloaders in dictinary for given lists of cities
-        self.train_loader = {city:DataLoader(SegmentationDataset(city, 'training', dataset_size=train_size, augmentations=augmentations), batch_size, shuffle=True) for city in city_list} # dictionary of dataloaders
-        self.val_loader= {city:DataLoader(SegmentationDataset(city, 'validation', dataset_size=val_size), batch_size, shuffle=True) for city in city_list} # dictionary of dataloaders
-        self.test_loader = DataLoader(SegmentationDataset(TEST_CITY, 'test', dataset_size=test_size), batch_size) # only dataloader!
+        self.train_loader = {city:DataLoader(SegmentationDataset(city, 'training', dataset_size=train_size, augmentations=augmentations), batch_size, shuffle=True, num_workers=0) for city in city_list} # dictionary of dataloaders
+        self.val_loader= {city:DataLoader(SegmentationDataset(city, 'validation', dataset_size=val_size), batch_size, shuffle=True, num_workers=0) for city in city_list} # dictionary of dataloaders
+        self.test_loader = DataLoader(SegmentationDataset(TEST_CITY, 'test', dataset_size=test_size), batch_size, num_workers=0) # only dataloader!
 
 
 def train_apply_hyper(model_name = None):
@@ -84,10 +84,10 @@ def train_apply_hyper(model_name = None):
     # write and display hyperparameter info
     message = f'Hyperparameters selected with F1 score of {max_score:.2f}: ' + best_trainer.description +'\n'
     print(message)
-    write_results(message, trainer.val_output)
+    write_results(message, best_trainer.val_output)
 
     # run test
-    f1 = trainer.test()
+    f1 = best_trainer.test()
 
 def augment_apply(model_name = None):
     '''
@@ -95,21 +95,20 @@ def augment_apply(model_name = None):
     '''
 
     # list of single augmentations and a combination of augmentationss
-    augmentations_dict = {'additive Gaussian noise':augment.add_gaussian_noise, 
-                          'random contrast':augment.rnd_contrast, 
+    augmentations_dict = {#'additive Gaussian noise':augment.add_gaussian_noise, 
+                          'salt and pepper noise':augment.salt_pepper_noise, 
                           'horizontal flip':augment.h_flip, 
                           'random zoom':augment.rnd_zoom, 
-                          'noise and contrast': [augment.add_gaussian_noise, augment.rnd_contrast],
-                          'all augmentations':[augment.h_flip, augment.rnd_zoom, augment.rnd_contrast, augment.add_gaussian_noise]}
+                          'various noise': [augment.add_gaussian_noise, augment.salt_pepper_noise],
+                          'all augmentations':[augment.h_flip, augment.rnd_zoom, augment.salt_pepper_noise, augment.add_gaussian_noise]}
 
     # for all single augmentations and a combination of these augmentations
     for descr, augmentations in augmentations_dict.items():
-        band = 'all' # use all bands
         dataset = DataSplit(augmentations=augmentations) # init dataloader for train, valdiation, test
 
         # define model and its parameters
         if model_name == 'ConvNet':
-            model = ConvNet(band, CONVNET_DROPOUT)
+            model = ConvNet(params.BAND, CONVNET_DROPOUT)
             train_output = CONVNET_AUG_TRAIN
             val_output = CONVNET_AUG_VAL
             learning_rates = CONVNET_LEARNING_RATES[1]
@@ -118,7 +117,7 @@ def augment_apply(model_name = None):
             class_weight = CONVNET_CLASS_WEIGHT
 
         elif model_name == 'UNet':
-            model = UNet(band,OUT_DIM, UNET_DROPOUT)
+            model = UNet(params.BAND,OUT_DIM, UNET_DROPOUT)
             train_output = UNET_AUG_TRAIN
             val_output = UNET_AUG_VAL
             learning_rates = UNET_LEARNING_RATES[1]
@@ -134,7 +133,7 @@ def augment_apply(model_name = None):
             test_loader=dataset.test_loader, 
             train_output=train_output, 
             val_output=val_output, 
-            band=band, 
+            band=params.BAND, 
             weight_decay=l2_norm, 
             lr=learning_rates, 
             dropout=dropout, 

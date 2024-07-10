@@ -19,7 +19,7 @@ TEST_COORDS = [13.294333, 52.454927, 13.500205, 52.574409] # (longitude west, la
 # dataset parameters
 TRAIN_SIZE = 640
 VAL_SIZE = 160
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 TEST_SIZE = 1
 PATCH_SIZE = 128
 BUILDING_COVER = 0.3 # default parameter for desired coverage of data with buildings
@@ -34,9 +34,11 @@ CONVNET_AUG_TRAIN = 'ConvNet_train_augment_metrics' # train metrics augmentation
 CONVNET_AUG_VAL = 'ConvNet_test_augment_metrics' # validation metrics augmentation 
 
 # ConvNet hyperparameters
-CONVNET_DROPOUT = 0.25 # ConvNet
-CONVNET_LEARNING_RATES = [1e-4, 5e-5] # ConvNet
-CONVNET_L2_NORM = [1e-2, 5e-3] # ConvNet
+CONVNET_DROPOUT = 0.15 # ConvNet
+CONVNET_LEARNING_RATES = [1e-3] # ConvNet
+#CONVNET_LEARNING_RATES = [1e-3, 1e-4, 1e-5] # ConvNet
+#CONVNET_L2_NORM = [1e-3, 5e-4] # ConvNet
+CONVNET_L2_NORM = [5e-4] # ConvNet
 CONVNET_CLASS_WEIGHT =torch.FloatTensor([1.0])
 
 # UNet parameters 
@@ -49,12 +51,13 @@ UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation
 OUT_DIM = 1 # output
 
 # UNet hyperparameters
-UNET_DROPOUT = 0.1 # dropout rate
-UNET_LEARNING_RATES = [5e-4, 1e-4, 5e-5] # learning rates
-UNET_L2_NORM = [1e-3, 1e-4] # L2 normalization (weight decay)
-UNET_CLASS_WEIGHT = torch.FloatTensor([2.33]) # weight for postive class
+UNET_DROPOUT = 0.2 # dropout rate
+UNET_LEARNING_RATES = [1e-3, 5e-4] # learning rates
+UNET_L2_NORM = [5e-3, 1e-3] # L2 normalization (weight decay)
+UNET_CLASS_WEIGHT = torch.FloatTensor([1.3]) # weight for postive class
 
 # global hyperparameters
+#BANDS = ['all','NIRGB', 'NIR'] # selection of channels
 BANDS = ['all','NIRGB', 'NIR'] # selection of channels
 PRED_THRESHOLD = 0.5 # threshold for predicting a pixel as 'building'
 
@@ -63,3 +66,4 @@ BAND = 'all' # used bands for augmentation
 PROB = 0.5 # prob. of augmentation being applied per sample
 GMEAN = 0 # Gaussian mean
 STDDEV = 0.07 # Gaussian standard deviation 
+SP_PROB = 0.07 # probability of salt and pepper noises

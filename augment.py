@@ -4,72 +4,97 @@ import cv2
 import params
 
 def add_gaussian_noise(data_sample, probability=params.PROB, mean=params.GMEAN, sigma = params.STDDEV):
-
-    # extract images from data sample
-    bands = [params.BAND]
-
+    '''
+    Augmentation that adds Gaussian noise to all channels of an image.
+    '''
     # arbitrary number in [0,1]
     rndm = np.random.rand()
 
     # apply only to defined percentage of images
     if rndm <= probability:
-        for band in bands:
-            # extract each band from the sample
-            image = data_sample[band].copy()
+        # extract band from the sample
+        image = data_sample[params.BAND].copy()
 
+        # apply to single bands as well as composed bands -> multi-channel image
+        if image.ndim > 2:
+            for i, channel in enumerate(image[:]):
+                # add Gaussian noise
+                channel += np.random.normal(mean, sigma, channel.shape)
+
+                # clip to normal intensity range
+                channel = np.clip(channel,0,255)
+
+        # just single channel
+        else:
+            # add Gaussian noise
             image += np.random.normal(mean, sigma, image.shape)
-
+            
             # clip to normal intensity range
             image = np.clip(image,0,255)
-
-            # insert back into data_sample dictionary
-            data_sample[band] = image
+            
+        # insert back into data_sample dictionary
+        data_sample[params.BAND] = image
 
     return data_sample
 
-def rnd_contrast(data_sample, probability=params.PROB):
-
-    # extract images from data sample
-    bands = [params.BAND]
-
+def salt_pepper_noise(data_sample, probability=params.PROB, sp_prob=params.SP_PROB):
+    '''
+    Augmentation that adds salt and pepper noise to all channels of an image.
+    '''
     # arbitrary number in [0,1]
     rndm = np.random.rand()
 
     # apply only to defined percentage of images
     if rndm <= probability:
-        for band in bands:
+        # extract each band from the sample
+        image = data_sample[params.BAND].copy()
+        
+        # get dimensions
+        img_height = image.shape[-2]
+        img_width = image.shape[-1]
 
-            # change intensity range randomly
-            upper_bound = np.random.randint(1,230) 
-            lower_bound = np.random.randint(0, upper_bound)
+        noise_no = int(image.size * sp_prob/2)
 
-            # extract each band from the sample
-            image = data_sample[band].copy()
-            
-            # apply to single bands as well as composed bands -> multi-channel image
-            if image.ndim > 2:
+        # apply to single bands as well as composed bands -> multi-channel image
+        if image.ndim > 2:
+            for i, channel in enumerate(image[:]):
+                # get coordinates where to apply noise
+                coord_list = [[np.random.randint(0, img_height-1), np.random.randint(0, img_width-1)] for i in range(noise_no)]
 
-                for i, channel in enumerate(image[:]):
-                    # find minima and maxima per channel
-                    min_ch = np.min(channel)
-                    max_ch = np.max(channel)
-                    # apply linear grey-value stretching
-                    image[i] = np.clip((((channel-min_ch)*(upper_bound-lower_bound)/(max_ch-min_ch)) + lower_bound).astype(np.int8), 0,255)
+                for pos in coord_list:
+                    # arbitrary number in [0,1]
+                    rndm_2 = np.random.rand()
+                    if rndm_2 > 0.5:
+                        # set white
+                        channel[pos] = 1
+                    else:
+                        # set black
+                        channel[pos] = 0
 
-            # just a single channel
-            else:
-                min_img = np.min(image)
-                max_img = np.max(image)
-                # apply linear grey-value stretching
-                image = np.clip(((image-min_img)*(upper_bound-lower_bound)/(max_img-min_img)+lower_bound).astype(np.int8),0,255)
+        # just a single channelS
+        else:
+            # get coordinates where to apply noise
+            coord_list = [[np.random.randint(0, img_height-1), np.random.randint(0, img_width-1)] for i in range(noise_no)]
 
-            # insert back into data_sample dictionary
-            data_sample[band] = image
+            for pos in coord_list:
+                # arbitrary number in [0,1]
+                rndm_3 = np.random.rand()
+                if rndm_3 > 0.5:
+                    # set white
+                    image[pos] = 1
+                else:
+                    # set black
+                    image[pos] = 0
+
+        # insert back into data_sample dictionary
+        data_sample[params.BAND] = image
 
     return data_sample
 
 def rnd_zoom(data_sample, probability=params.PROB):
-
+    '''
+    Augmentation that applies a zoom by a random factor.
+    '''
     # extract images from data sample
     bands = [params.BAND, 'label']
 
@@ -142,16 +167,23 @@ def h_flip(data_sample, probability=params.PROB):
 
     return data_sample
 
-def apply_augment(data_sample, augmentations):
+def apply_augment(data_sample, augmentations, probability=params.PROB):
     '''
     Create pipeline of augmentation functions and apply them to the input
     '''
+
     output = data_sample
-    # check if a list of augmentations is passed
-    if isinstance(augmentations, list):
-        for augmentation in augmentations:
-            output = augmentation(output)
-        return output
+
+    # apply only to defined percentage of images
+    if np.random.rand() <= probability:
+        # check if a list of augmentations is passed
+        if isinstance(augmentations, list):
+            for augmentation in augmentations:
+                output = augmentation(output, probability=1.0)
+            return output
+    else:
+        # only single augmentation is passed
+        return augmentations(output)
     
-    # only single augmentation is passed
-    return augmentations(output)
+    # no augmentation applied
+    return output
