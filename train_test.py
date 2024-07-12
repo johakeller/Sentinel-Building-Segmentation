@@ -108,14 +108,19 @@ class Trainer:
         print(self.description)
 
         # initialize metrics
-        all_labels = torch.Tensor([]).to(params.DEVICE)
-        all_predictions = torch.Tensor([]).to(params.DEVICE)
-
+        f1 = 0
+        accuracy = 0
+        precision = 0
+        recall = 0
         sched_ctr = 0
 
         # set model to train mode
         self.model.train()
         for epoch in range(self.epochs): # all epochs
+            
+            # collect labels and predictions
+            all_labels = torch.Tensor([]).to(params.DEVICE)
+            all_predictions = torch.Tensor([]).to(params.DEVICE)
             # increase counter
             sched_ctr += 1
 
@@ -145,8 +150,8 @@ class Trainer:
                     # for UNet:compund loss BCE and IoU
                     loss = self.bce_f*self.criterion(prediction, train_label) + self.iou_f*self.iou(prediction, train_label) # calculate error
                     avg_loss += loss.item()
-                    print(f'loss: {round(loss.item(),3)}')
-                    print(f'learning rate: {self.optimizer.param_groups[0]["lr"]}')
+                    #print(f'loss: {round(loss.item(),3)}')
+                    #print(f'learning rate: {self.optimizer.param_groups[0]["lr"]}')
 
                     # TODO DELETE
                     #inp = train_input[3]
@@ -173,8 +178,25 @@ class Trainer:
                 message = f'Training epoch {epoch + 1}, {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
                 print(message)
  
-        # calculate, print and write metrics, return f1 score
-        return self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
+            # calculate, metrics, return f1 score
+            f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
+
+            f1 += f1_tmp
+            accuracy += accuracy_tmp
+            precision += precision_tmp
+            recall += recall_tmp
+        
+        # print and save metrics
+        f1 /= self.epochs
+        accuracy /= self.epochs
+        precision /= self.epochs
+        recall /= self.epochs
+        
+        message = self.description + f'\nTraining accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
+        print(message)
+        write_results(message + '\n', self.train_output)
+
+        return f1
 
     def validation(self):
         '''
@@ -222,12 +244,15 @@ class Trainer:
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).int().flatten().detach()))
            
             prog_bar.close()
-            # average loss per city
-            message = f'Valdiation {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
-            print(message)
+            
+        # calculate, metrics, return f1 score
+        f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Validation')
+    
+        message = self.description + f'\nValidation accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
+        print(message)
+        write_results(message + '\n', self.val_output)
 
-        # calculate, print and write metrics, return f1 score
-        return self.calculate_metrics(all_labels, all_predictions, self.val_output, mode='Validation')
+        return f1
 
     def test(self):
         '''
@@ -272,8 +297,14 @@ class Trainer:
         # DELETE
         #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
-        # calculate, print and write metrics, return f1 score
-        return self.calculate_metrics(all_labels, all_predictions, self.val_output, mode='Test')
+        # calculate, metrics, return f1 score
+        f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Test')
+    
+        message = self.description + f'\nTest accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
+        print(message)
+        write_results(message + '\n', self.test_output)
+
+        return f1
 
     def calculate_metrics(self, labels, predictions, output, mode):
         '''
@@ -298,12 +329,7 @@ class Trainer:
         accuracy = accuracy_score(labels, predictions)
         precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='macro', zero_division=0)
 
-        # print and save metrics
-        message = self.description + f'\n{mode} accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
-        print(message)
-        write_results(message + '\n', output)
-
         # measure, hyperparameter optimization is performed on
-        return f1
+        return f1, accuracy, precision, recall
 
 
