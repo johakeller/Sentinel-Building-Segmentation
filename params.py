@@ -7,11 +7,18 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # data paths 
 OSM_PATH = r'../OSM_maps/'
-IMAGE_DATA_PATH = r'../image_data/'
-DATASET_TRAIN = r'../dataset/training/'
-DATASET_VAL = r'../dataset/validation/'
-DATASET_TEST = r'../dataset/test/'
-OUT_PATH = r'../output/'
+#IMAGE_DATA_PATH = r'../image_data/'
+#DATASET_TRAIN = r'../dataset/training/'
+#DATASET_VAL = r'../dataset/validation/'
+#DATASET_TEST = r'../dataset/test/'
+#OUT_PATH = r'../output/'
+
+# colab paths
+IMAGE_DATA_PATH = r'/content/image_data/'
+DATASET_TRAIN = r'/content/dataset/training/'
+DATASET_VAL = r'/content/dataset/validation/'
+DATASET_TEST = r'/content/dataset/test/'
+OUT_PATH = r'/content/output/'
 
 #DATA_CITIES = ['Lyon']
 DATA_CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] # cities to collect data from
@@ -26,7 +33,7 @@ BATCH_SIZE = 32
 TEST_SIZE = 1
 PATCH_SIZE = 128
 BUILDING_COVER = 0.3 # default parameter for desired coverage of data with buildings
-EPOCHS = 1
+EPOCHS = 10
 
 # ConvNet parameters
 CONVNET_TRAIN = 'ConvNet_hyper_train_metrics' # train metrics output file name
@@ -37,10 +44,12 @@ CONVNET_AUG_TRAIN = 'ConvNet_train_augment_metrics' # train metrics augmentation
 CONVNET_AUG_VAL = 'ConvNet_test_augment_metrics' # validation metrics augmentation 
 
 # ConvNet hyperparameters
-CONVNET_DROPOUT = 0.2 # ConvNet
+CONVNET_DROPOUT = 0.15 # ConvNet
 CONVNET_LEARNING_RATES = [1e-3, 1e-4, 1e-5] # ConvNet
 CONVNET_L2_NORM = [1e-3, 5e-4] # ConvNet
-CONVNET_CLASS_WEIGHT =torch.FloatTensor([1.0])
+CONVNET_CLASS_WEIGHT =torch.FloatTensor([1.0]).to(DEVICE)
+UNET_IOU_WEIGHT = 0.0
+UNET_BCE_WEIGHT = 1.0
 
 # UNet parameters 
 UNET_TRAIN = 'UNet_hyper_train_metrics' # train metrics output file name
@@ -52,10 +61,12 @@ UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation
 OUT_DIM = 1 # output
 
 # UNet hyperparameters
-UNET_DROPOUT = 0.15 # dropout rate
-UNET_LEARNING_RATES = [1e-3, 1e-4] # learning rates
-UNET_L2_NORM = [1e-3, 1e-4] # L2 normalization (weight decay)
-UNET_CLASS_WEIGHT = torch.FloatTensor([1.3]) # weight for postive class
+UNET_DROPOUT = 0.1 # dropout rate
+UNET_LEARNING_RATES = [1e-3, 1e-4, 1e-5] # learning rates
+UNET_L2_NORM = [1e-4, 1e-5] # L2 normalization (weight decay)
+UNET_CLASS_WEIGHT = torch.FloatTensor([1.0]).to(DEVICE) # weight for postive class
+UNET_IOU_WEIGHT = 0.4
+UNET_BCE_WEIGHT = 0.6
 
 # global hyperparameters
 BANDS = ['all','NIRGB', 'NIR'] # selection of channels

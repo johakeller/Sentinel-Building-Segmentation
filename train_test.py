@@ -33,7 +33,7 @@ class IoU(nn.Module):
         return 1-((intersection + smoothing)/ (union +smoothing))
     
 #TODO DELETE
-def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
+def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title, city, ctr):
     # Create a new figure for the subplots
     plt.figure(figsize=(15, 5))
 
@@ -56,9 +56,7 @@ def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
         plt.axis('off')  # Hide axes 
 
     # Show the combined figure
-    plt.show(block=False)
-    plt.pause(3.0)
-    plt.close()
+    plt.savefig(os.path.join(params.OUT_PATH, f'{city}_{ctr}.png'))
 
 def write_results(output, file):
     '''
@@ -79,7 +77,7 @@ def write_results(output, file):
     
 class Trainer:
 
-    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0, lr_scheduler=False):
+    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0, lr_scheduler=False, iou_w=0.0, bce_w=1.0):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
@@ -93,13 +91,14 @@ class Trainer:
         self.learning_rate = lr
         self.optimizer = optim.Adam(model.parameters(), lr =self.learning_rate, weight_decay=weight_decay)
         if lr_scheduler:
-            self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.8) 
-            #self.lr_scheduler = CosineAnnealingLR(self.optimizer, T_max=45, eta_min=5e-5)
+            self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.95) 
+            #self.lr_scheduler = CosineAnnealingLR(self.optimizer, T_max=45, eta_min=1e-6)
         else:
             self.lr_scheduler = None
-        self.criterion = IoU() # for UNet (https://towardsdatascience.com/u-net-for-semantic-segmentation-on-unbalanced-aerial-imagery-3474fa1d3e56)
-        #self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
-
+        self.iou = IoU() # for UNet (https://towardsdatascience.com/u-net-for-semantic-segmentation-on-unbalanced-aerial-imagery-3474fa1d3e56)
+        self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
+        self.iou_f = iou_w
+        self.bce_f = bce_w
     
     def training(self):
         '''
@@ -108,6 +107,10 @@ class Trainer:
         # print hyperparameters
         print(self.description)
 
+        # initialize metrics
+        all_labels = torch.Tensor([]).to(params.DEVICE)
+        all_predictions = torch.Tensor([]).to(params.DEVICE)
+
         sched_ctr = 0
 
         # set model to train mode
@@ -115,8 +118,6 @@ class Trainer:
         for epoch in range(self.epochs): # all epochs
             # increase counter
             sched_ctr += 1
-            all_labels = torch.Tensor([]).to(params.DEVICE)
-            all_predictions = torch.Tensor([]).to(params.DEVICE)
 
             for city, dataloader in self.train_loader.items(): # go through the dictionary train loader (for each city)
 
@@ -141,8 +142,8 @@ class Trainer:
                     #print('before forward pass')
                     prediction = self.model.forward(train_input) # forward pass
 
-
-                    loss = self.criterion(prediction, train_label) # calculate error
+                    # for UNet:compund loss BCE and IoU
+                    loss = self.bce_f*self.criterion(prediction, train_label) + self.iou_f*self.iou(prediction, train_label) # calculate error
                     avg_loss += loss.item()
                     print(f'loss: {round(loss.item(),3)}')
                     print(f'learning rate: {self.optimizer.param_groups[0]["lr"]}')
@@ -182,20 +183,21 @@ class Trainer:
         # set model to validation mode
         self.model.eval()
 
-        avg_loss = 0.0
+        # initialize metrics
         all_labels = torch.tensor([]).to(params.DEVICE)
         all_predictions = torch.tensor([]).to(params.DEVICE)
 
         for city, dataloader in self.val_loader.items(): # go through the dictionary validation loader (for each city)
 
             # statistics 
+            avg_loss = 0.0
             prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} validation', position=0, leave=False)
             inp = None
             pred = None
             lab = None
 
             with torch.no_grad():
-                for data in dataloader: # go through data in each data loader
+                for i, data in enumerate(dataloader): # go through data in each data loader
                     # update progress prog_bar
                     prog_bar.update(dataloader.batch_size)
 
@@ -204,14 +206,13 @@ class Trainer:
                     #print(f'label: {test_label.shape}, type {type(test_label)}')
 
                     prediction = self.model.forward(test_input) # forward pass
-                    loss = self.criterion(prediction, test_label) # calculate error
+                    loss = self.bce_f*self.criterion(prediction, test_label) + self.iou_f*self.iou(prediction, test_label)
                     avg_loss += loss.item()
 
-                    #if loss.item() > 0.635:
-                    #    inp = test_input[3]
-                    #    pred = prediction[3]
-                    #    lab = test_label[3]
-                    #    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    inp = test_input[3]
+                    pred = prediction[3]
+                    lab = test_label[3]
+                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction', city, i)
 
                     # DELETE
                     #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
@@ -252,7 +253,7 @@ class Trainer:
                 #print(f'label: {test_label.shape}, type {type(test_label)}')
 
                 prediction = self.model.forward(test_input) # forward pass
-                loss = self.criterion(prediction, test_label) # calculate error
+                loss = loss = self.bce_f*self.criterion(prediction, test_label) + self.iou_f*self.iou(prediction, test_label)
                 avg_loss += loss.item()
 
                 # for visualization

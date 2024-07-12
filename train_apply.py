@@ -65,11 +65,15 @@ def train_apply_hyper(model_name = None):
                     train_output = params.CONVNET_TRAIN
                     val_output = params.CONVNET_VAL
                     class_weight = params.CONVNET_CLASS_WEIGHT
+                    iou_w = params.CONVNET_IOU_WEIGHT
+                    bce_w = params.CONVNET_BCE_WEIGHT
                 elif model_name == 'UNet':
                     model = models.UNet(band,params.OUT_DIM, dropout)
                     train_output = params.UNET_TRAIN
                     val_output = params.UNET_VAL
                     class_weight = params.UNET_CLASS_WEIGHT
+                    iou_w = params.UNET_IOU_WEIGHT
+                    bce_w = params.UNET_BCE_WEIGHT
 
                 # move to device
                 model = model.to(params.DEVICE)
@@ -87,7 +91,9 @@ def train_apply_hyper(model_name = None):
                     lr=lr, dropout=dropout, 
                     model_name=model.name, 
                     class_weight=class_weight, 
-                    lr_scheduler=True)
+                    lr_scheduler=True,
+                    iou_w=iou_w,
+                    bce_w=bce_w)
                 _ = trainer.training()
                 f1 = trainer.validation()
 
