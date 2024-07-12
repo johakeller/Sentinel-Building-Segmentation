@@ -24,6 +24,8 @@ def add_gaussian_noise(data_sample, probability=params.PROB, mean=params.GMEAN, 
                 # clip to normal intensity range
                 channel = np.clip(channel,0,255)
 
+                image[i] = channel
+
         # just single channel
         else:
             # add Gaussian noise
@@ -43,7 +45,7 @@ def salt_pepper_noise(data_sample, probability=params.PROB, sp_prob=params.SP_PR
     '''
     # arbitrary number in [0,1]
     rndm = np.random.rand()
-
+    
     # apply only to defined percentage of images
     if rndm <= probability:
         # extract each band from the sample
@@ -53,45 +55,40 @@ def salt_pepper_noise(data_sample, probability=params.PROB, sp_prob=params.SP_PR
         img_height = image.shape[-2]
         img_width = image.shape[-1]
 
-        noise_no = int(image.size * sp_prob/2)
+        noise_no = int(img_height*img_width * sp_prob*0.5)
+
+        # get coordinates where to apply noise
+        coords_black = [[np.random.randint(0, img_height-1), np.random.randint(0, img_width-1)] for i in range(noise_no)]
+        coords_white = [[np.random.randint(0, img_height-1), np.random.randint(0, img_width-1)] for i in range(noise_no)]
 
         # apply to single bands as well as composed bands -> multi-channel image
         if image.ndim > 2:
             for i, channel in enumerate(image[:]):
-                # get coordinates where to apply noise
-                coord_list = [[np.random.randint(0, img_height-1), np.random.randint(0, img_width-1)] for i in range(noise_no)]
-
-                for pos in coord_list:
-                    # arbitrary number in [0,1]
-                    rndm_2 = np.random.rand()
-                    if rndm_2 > 0.5:
-                        # set white
-                        channel[pos] = 1
-                    else:
+                
+                for pos in coords_black:
                         # set black
-                        channel[pos] = 0
+                        channel[pos[0], pos[1]] = 0
+                        #print(pos[0], pos[1])
+                for pos in coords_white:
+                        channel[pos[0], pos[1]] = 1
+
+                image[i] = channel
 
         # just a single channelS
         else:
-            # get coordinates where to apply noise
-            coord_list = [[np.random.randint(0, img_height-1), np.random.randint(0, img_width-1)] for i in range(noise_no)]
-
-            for pos in coord_list:
-                # arbitrary number in [0,1]
-                rndm_3 = np.random.rand()
-                if rndm_3 > 0.5:
-                    # set white
-                    image[pos] = 1
-                else:
+            for pos in coords_black:
                     # set black
-                    image[pos] = 0
+                    image[pos[0], pos[1]] = 0
+                    #print(pos[0], pos[1])
+            for pos in coords_white:
+                    image[pos[0], pos[1]] = 1
 
         # insert back into data_sample dictionary
         data_sample[params.BAND] = image
-
+    
     return data_sample
 
-def rnd_zoom(data_sample, probability=params.PROB):
+def rnd_zoom(data_sample, probability=params.PROB, max_zoom= params.MAX_ZOOM):
     '''
     Augmentation that applies a zoom by a random factor.
     '''
@@ -101,7 +98,7 @@ def rnd_zoom(data_sample, probability=params.PROB):
     # arbitrary number in [0,1]
     rndm = np.random.rand()
     # arbitrary zoom factor
-    f_zoom = np.random.uniform(1.0, 5.0)
+    f_zoom = np.random.uniform(1.0, max_zoom)
 
     # apply only to defined percentage of images
     if rndm <= probability:
@@ -147,10 +144,6 @@ def h_flip(data_sample, probability=params.PROB):
         for band in bands:
             image = data_sample[band].copy()
 
-            # get dimensions
-            img_height = image.shape[-2]
-            img_width = image.shape[-1]
-
             # apply to single bands as well as composed bands -> multi-channel image
             if image.ndim > 2:
 
@@ -179,11 +172,12 @@ def apply_augment(data_sample, augmentations, probability=params.PROB):
         # check if a list of augmentations is passed
         if isinstance(augmentations, list):
             for augmentation in augmentations:
-                output = augmentation(output, probability=1.0)
+                output = augmentation(output, probability=1.0)   
             return output
-    else:
-        # only single augmentation is passed
-        return augmentations(output)
+        
+        else:
+            # only single augmentation is passed
+            return augmentations(output)
     
     # no augmentation applied
     return output

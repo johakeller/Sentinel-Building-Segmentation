@@ -2,12 +2,36 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
+
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 import params
+
+class IoU(nn.Module):
+    # TODO source: https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch/notebook
+    def __init__(self):
+        super(IoU, self).__init__()
+
+    def forward(self, predictions, labels, smoothing =1.0):
+
+        # apply Sigmoid
+        predictions = torch.sigmoid(predictions).to(params.DEVICE)
+
+        # flattening
+        predictions = predictions.view(-1)
+        labels= labels.view(-1)
+
+        # intersection
+        intersection = (predictions* labels).sum()
+        total =(predictions + labels).sum()
+        union = total - intersection
+
+        return 1-((intersection + smoothing)/ (union +smoothing))
+    
 #TODO DELETE
 def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
     # Create a new figure for the subplots
@@ -23,7 +47,7 @@ def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
         r_channel_tensor = images[i][0]
 
         # Convert the tensor to a NumPy array
-        r_channel_array = r_channel_tensor.detach().numpy()
+        r_channel_array = r_channel_tensor.cpu().detach().numpy()
 
         # Plot the greyscale image in the specified subplot
         plt.subplot(1, 3, i+1)
@@ -32,7 +56,9 @@ def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title):
         plt.axis('off')  # Hide axes 
 
     # Show the combined figure
-    plt.show()
+    plt.show(block=False)
+    plt.pause(3.0)
+    plt.close()
 
 def write_results(output, file):
     '''
@@ -50,7 +76,7 @@ def write_results(output, file):
 
     with open(os.path.join(params.OUT_PATH, f'{file}.txt'), "a", encoding="utf-8") as file:
         file.write(output)
-
+    
 class Trainer:
 
     def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0, lr_scheduler=False):
@@ -61,16 +87,18 @@ class Trainer:
         self.epochs = epochs
         self.band = band
         self.description = f'{model_name}, bands: {band}, learning rate: {lr}, weight decay: {weight_decay}'
-        self.model = model # initialize model after bands, because number of channels has to be adjusted
+        self.model = model.to(params.DEVICE) # initialize model after bands, because number of channels has to be adjusted
         self.train_output = train_output
         self.val_output = val_output
-        self.optimizer = optim.Adam(model.parameters(), lr =lr, weight_decay=weight_decay)
+        self.learning_rate = lr
+        self.optimizer = optim.Adam(model.parameters(), lr =self.learning_rate, weight_decay=weight_decay)
         if lr_scheduler:
-            self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.5) 
-            #self.lr_scheduler = CosineAnnealingLR(self.optimizer, T_max=33, eta_min=5e-6)
+            self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.8) 
+            #self.lr_scheduler = CosineAnnealingLR(self.optimizer, T_max=45, eta_min=5e-5)
         else:
             self.lr_scheduler = None
-        self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
+        self.criterion = IoU() # for UNet (https://towardsdatascience.com/u-net-for-semantic-segmentation-on-unbalanced-aerial-imagery-3474fa1d3e56)
+        #self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
 
     
     def training(self):
@@ -80,13 +108,18 @@ class Trainer:
         # print hyperparameters
         print(self.description)
 
+        sched_ctr = 0
+
         # set model to train mode
         self.model.train()
         for epoch in range(self.epochs): # all epochs
-            all_labels = torch.Tensor([])
-            all_predictions = torch.Tensor([])
+            # increase counter
+            sched_ctr += 1
+            all_labels = torch.Tensor([]).to(params.DEVICE)
+            all_predictions = torch.Tensor([]).to(params.DEVICE)
 
             for city, dataloader in self.train_loader.items(): # go through the dictionary train loader (for each city)
+
                 # statistics 
                 prog_bar = tqdm(total=len(dataloader.dataset), desc=f'Training epoch {epoch+1}, {city}', position=0, leave=False)
                 avg_loss = 0.0
@@ -97,76 +130,50 @@ class Trainer:
                 lab = None
 
                 for data in dataloader: # go through data in each data loader
-                    try:
-                        # update prog_bar
-                        prog_bar.update(dataloader.batch_size)
-                        #print('new batch:')
 
-                        train_input = data[self.band]
-                        train_label = data['label']
-                        
-                        #print('before forward pass')
-                        prediction = self.model.forward(train_input) # forward pass
-                        #print('forward pass')
-                        
-                        # TODO DELTE DEBUGGING
-                        #if torch.isnan(prediction).any() or torch.isnan(train_label).any():
-                        #    print("NaN value found in prediction or label")
+                    # update prog_bar
+                    prog_bar.update(dataloader.batch_size)
+                    #print('new batch:')
 
-                        #if torch.isinf(prediction).any() or torch.isinf(train_label).any():
-                        #    print("NaN value found in prediction or label")
-
-                        # Check gradients
-                        #for name, param in self.model.named_parameters():
-                        #    if param.grad is not None:
-                        #        if torch.isinf(param.grad).any() or torch.isnan(param.grad).any():
-                        #            print(f"Inf or NaN gradient in layer: {name}")
-                        #    else:
-                        #        print(f"Layer: {name} has no gradient")
+                    train_input = data[self.band].to(params.DEVICE)
+                    train_label = data['label'].to(params.DEVICE)
+                    
+                    #print('before forward pass')
+                    prediction = self.model.forward(train_input) # forward pass
 
 
-                        loss = self.criterion(prediction, train_label) # calculate error
-                        avg_loss += loss.item()
-                        #print(round(loss.item(),3))
+                    loss = self.criterion(prediction, train_label) # calculate error
+                    avg_loss += loss.item()
+                    print(f'loss: {round(loss.item(),3)}')
+                    print(f'learning rate: {self.optimizer.param_groups[0]["lr"]}')
 
-                        # TODO DELETE
-                        #inp = train_input[3]
-                        #pred = prediction[3]
-                        #lab = train_label[3]
-                        #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
+                    # TODO DELETE
+                    #inp = train_input[3]
+                    #pred = prediction[3]
+                    #lab = train_label[3]
+                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
-                        # backpropagation
-                        self.optimizer.zero_grad()
-                        loss.backward()
-                        #print('backward pass')
-                        self.optimizer.step()
-                        #print('after optimizer step')
+                    # backpropagation
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
 
-                        # for metrics (remove unnecessary first dimension)
-                        all_labels = torch.cat((all_labels, train_label.flatten().detach()))
-                        # create binary predictions out of probabilities by thresholding
-                        all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).flatten().detach()))
-                
-                    except Exception as e:
-                        print(f"Error in training loop: {e}")
-                        # Optionally raise the error to stop training or handle differently
-                        raise e
+                    # for metrics (remove first dimension)
+                    all_labels = torch.cat((all_labels, train_label.flatten().detach()))
+                    # create binary predictions out of probabilities by thresholding
+                    all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).flatten().detach()))
 
-                # learning rate scheduler step
-                if self.lr_scheduler is not None:
-                    self.lr_scheduler.step()
+                    # step after ten batches
+                    if self.lr_scheduler is not None:
+                        self.lr_scheduler.step()
 
                 prog_bar.close()             
                 # average loss after each city
                 message = f'Training epoch {epoch + 1}, {city}, avg loss: {round(avg_loss/ len(dataloader),2)}\n'
                 print(message)
-
-                # TODO DELETE
-                #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
  
         # calculate, print and write metrics, return f1 score
         return self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
-
 
     def validation(self):
         '''
@@ -176,8 +183,8 @@ class Trainer:
         self.model.eval()
 
         avg_loss = 0.0
-        all_labels = torch.tensor([])
-        all_predictions = torch.tensor([])
+        all_labels = torch.tensor([]).to(params.DEVICE)
+        all_predictions = torch.tensor([]).to(params.DEVICE)
 
         for city, dataloader in self.val_loader.items(): # go through the dictionary validation loader (for each city)
 
@@ -192,18 +199,19 @@ class Trainer:
                     # update progress prog_bar
                     prog_bar.update(dataloader.batch_size)
 
-                    test_input = data[self.band]
-                    test_label = data['label']
+                    test_input = data[self.band].to(params.DEVICE)
+                    test_label = data['label'].to(params.DEVICE)
                     #print(f'label: {test_label.shape}, type {type(test_label)}')
 
                     prediction = self.model.forward(test_input) # forward pass
                     loss = self.criterion(prediction, test_label) # calculate error
                     avg_loss += loss.item()
 
-                    # for visualization
-                    inp = test_input[0]
-                    pred = prediction[0]
-                    lab = test_label[0]
+                    #if loss.item() > 0.635:
+                    #    inp = test_input[3]
+                    #    pred = prediction[3]
+                    #    lab = test_label[3]
+                    #    visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # DELETE
                     #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
@@ -230,8 +238,8 @@ class Trainer:
 
         # statistics 
         avg_loss = 0.0
-        all_labels = torch.tensor([])
-        all_predictions = torch.tensor([])
+        all_labels = torch.tensor([]).to(params.DEVICE)
+        all_predictions = torch.tensor([]).to(params.DEVICE)
         #inp = None
         #pred = None
         #lab = None
@@ -239,8 +247,8 @@ class Trainer:
         with torch.no_grad():
             for data in dataloader: # go through data in each data loader
 
-                test_input = data[self.band]
-                test_label = data['label']
+                test_input = data[self.band].to(params.DEVICE)
+                test_label = data['label'].to(params.DEVICE)
                 #print(f'label: {test_label.shape}, type {type(test_label)}')
 
                 prediction = self.model.forward(test_input) # forward pass
@@ -283,8 +291,8 @@ class Trainer:
                 id_c (int): column index of the lowest confidence value
         '''
         # convert to ints
-        labels = labels.to(torch.int)
-        predictions = predictions.to(torch.int)
+        labels = labels.cpu().to(torch.int).numpy()
+        predictions = predictions.cpu().to(torch.int).numpy()
 
         accuracy = accuracy_score(labels, predictions)
         precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='macro', zero_division=0)

@@ -8,7 +8,7 @@ import params
 import data_acquisition
 import train_apply
 
-def check_image_data():
+def check_data():
     '''
     Confirms before training, whether image data ( .pkl files) already exists.
     
@@ -22,9 +22,15 @@ def check_image_data():
     # check if data is already there
     for city in params.CITIES:
         if not os.path.exists(os.path.join(params.IMAGE_DATA_PATH, f'{city}.pkl')):
-            return False
+            # check also for dataset
+            if not os.path.exists(os.path.join(params.DATASET_TRAIN, f'{city}_data.mmap')):
+                print(os.path.join(params.DATASET_TRAIN, f'{city}_data.mmap')) #TODO delete
+                return False
     if not os.path.exists(os.path.join(params.IMAGE_DATA_PATH, f'{params.TEST_CITY}.pkl')):
-        return False
+        # check also for dataset
+        if not os.path.exists(os.path.join(params.DATASET_TEST, f'{params.TEST_CITY}_data.mmap')):
+            print(os.path.join(params.DATASET_TEST, f'{params.TEST_CITY}_data.mmap')) #TODO delete
+            return False
     # everything there
     return True
 
@@ -57,7 +63,7 @@ def main(args):
             print('Run data acquisition.')
             data_acquisition.run_acquisition(plot=False)
 
-    if check_image_data():
+    if check_data():
         # UNet
         if 'unet' in args:
             if args.index('unet') + 1 < len(args) and args[args.index('unet')+1] == 'augment':
@@ -106,7 +112,7 @@ if __name__ == "__main__":
                 sys.exit(1)
     
     # TODO BUG solved
-    # deal with a threading bug
+    # against threading bug
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     torch.multiprocessing.set_start_method('spawn')

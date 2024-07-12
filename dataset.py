@@ -137,7 +137,8 @@ class SegmentationDataset(Dataset):
 
         # convert into torch tensor
         for key, value in data_sample.items():
-            data_sample[key] = torch.from_numpy(np.copy(value))
+            # copy values and move to device
+            data_sample[key] = torch.from_numpy(np.copy(value)).to(params.DEVICE)
        
         return data_sample
 
