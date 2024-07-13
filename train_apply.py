@@ -35,6 +35,60 @@ class DataSplit():
         self.test_loader = DataLoader(dataset.SegmentationDataset(params.TEST_CITY, 'test', dataset_size=test_size), batch_size, num_workers=0) # only dataloader!
 
 
+def train_apply(model_name = None):
+    '''
+    Function for simple training and validation without hyperparameter optimization.
+    '''
+
+    band = 'all' # use all bands
+    data_split = DataSplit() # init dataloader for train, valdiation, test
+
+    # define model and its parameters
+    if model_name == 'ConvNet':
+        model = models.ConvNet(band, params.CONVNET_DROPOUT, batch_norm=False)
+        train_output = params.CONVNET_SIMPLE_TRAIN
+        val_output = params.CONVNET_SIMPLE_VAL
+        learning_rates = params.CONVNET_LEARNING_RATES[0]
+        l2_norm = params.CONVNET_L2_NORM[0]
+        lr_sched = True
+        iou_w = params.CONVNET_IOU_WEIGHT
+        bce_w = params.CONVNET_BCE_WEIGHT
+
+    elif model_name == 'UNet':
+        model = models.UNet(band,params.OUT_DIM, params.UNET_DROPOUT)
+        train_output = params.UNET_SIMPLE_TRAIN
+        val_output = params.UNET_SIMPLE_VAL
+        learning_rates = params.UNET_LEARNING_RATES[0]
+        l2_norm = params.UNET_L2_NORM[0]
+        lr_sched = False
+        iou_w = params.UNET_IOU_WEIGHT
+        bce_w = params.UNET_BCE_WEIGHT
+
+    # move to device
+    model = model.to(params.DEVICE)
+
+    # start training and testing
+    trainer = train_test.Trainer(
+        model, 
+        train_loader=data_split.train_loader, 
+        val_loader=data_split.val_loader, 
+        test_loader=data_split.test_loader, 
+        train_output=train_output, 
+        val_output=val_output, band=band, 
+        weight_decay=l2_norm, 
+        lr=learning_rates, 
+        model_name=model.name,
+        lr_scheduler=lr_sched,
+        iou_w=iou_w,
+        bce_w=bce_w
+        )
+    
+    # change description
+    trainer.description = f'{model_name}, bands: {band}, learning rate: {learning_rates}, weight decay: {l2_norm}'
+    _ = trainer.training()
+    _ = trainer.validation()
+    _ = trainer.test()
+
 def train_apply_hyper(model_name = None):
     '''
     Applies the hyperparameter optimization
@@ -42,11 +96,9 @@ def train_apply_hyper(model_name = None):
     if model_name == 'ConvNet':
         learning_rates = params.CONVNET_LEARNING_RATES
         l2_norm = params.CONVNET_L2_NORM
-        dropout = params.CONVNET_DROPOUT
     elif model_name == 'UNet':
         learning_rates = params.UNET_LEARNING_RATES
         l2_norm = params.UNET_L2_NORM
-        dropout = params.UNET_DROPOUT
 
     data_split = DataSplit() # init dataloader for train, valdiation, test
 
@@ -61,19 +113,19 @@ def train_apply_hyper(model_name = None):
 
                 # define model and its parameters
                 if model_name == 'ConvNet':
-                    model = models.ConvNet(band, dropout)
+                    model = models.ConvNet(band, params.CONVNET_DROPOUT)
                     train_output = params.CONVNET_TRAIN
                     val_output = params.CONVNET_VAL
-                    class_weight = params.CONVNET_CLASS_WEIGHT
                     iou_w = params.CONVNET_IOU_WEIGHT
                     bce_w = params.CONVNET_BCE_WEIGHT
+                    lr_sched = True
                 elif model_name == 'UNet':
-                    model = models.UNet(band,params.OUT_DIM, dropout)
+                    model = models.UNet(band,params.OUT_DIM, params.UNET_DROPOUT)
                     train_output = params.UNET_TRAIN
                     val_output = params.UNET_VAL
-                    class_weight = params.UNET_CLASS_WEIGHT
                     iou_w = params.UNET_IOU_WEIGHT
                     bce_w = params.UNET_BCE_WEIGHT
+                    lr_sched = False
 
                 # move to device
                 model = model.to(params.DEVICE)
@@ -88,10 +140,9 @@ def train_apply_hyper(model_name = None):
                     val_output=val_output, 
                     band=band, 
                     weight_decay=weight_decay, 
-                    lr=lr, dropout=dropout, 
+                    lr=lr, 
                     model_name=model.name, 
-                    class_weight=class_weight, 
-                    lr_scheduler=True,
+                    lr_scheduler=lr_sched,
                     iou_w=iou_w,
                     bce_w=bce_w)
                 _ = trainer.training()
@@ -144,17 +195,19 @@ def augment_apply(model_name = None):
             val_output = params.CONVNET_AUG_VAL
             learning_rates = params.CONVNET_LEARNING_RATES[0]
             l2_norm = params.CONVNET_L2_NORM[1]
-            dropout = params.CONVNET_DROPOUT
-            class_weight = params.CONVNET_CLASS_WEIGHT
+            iou_w = params.CONVNET_IOU_WEIGHT
+            bce_w = params.CONVNET_BCE_WEIGHT
+            lr_sched = True
 
         elif model_name == 'UNet':
             model = models.UNet(params.BAND, params.OUT_DIM, params.UNET_DROPOUT)
             train_output = params.UNET_AUG_TRAIN
             val_output = params.UNET_AUG_VAL
             learning_rates = params.UNET_LEARNING_RATES[1]
-            l2_norm = params.UNET_L2_NORM[1]
-            dropout = params.UNET_DROPOUT
-            class_weight = params.UNET_CLASS_WEIGHT
+            l2_norm = params.UNET_L2_NORM[0]
+            iou_w = params.UNET_IOU_WEIGHT
+            bce_w = params.UNET_BCE_WEIGHT
+            lr_sched = False
 
             # move to device
             model = model.to(params.DEVICE)
@@ -170,10 +223,10 @@ def augment_apply(model_name = None):
             band=params.BAND, 
             weight_decay=l2_norm, 
             lr=learning_rates, 
-            dropout=dropout, 
             model_name=model.name,
-            class_weight=class_weight,
-            lr_scheduler=True
+            lr_scheduler=lr_sched,
+            iou_w=iou_w,
+            bce_w=bce_w
             )
         
         # change description
@@ -181,53 +234,3 @@ def augment_apply(model_name = None):
         _ = trainer.training()
         _ = trainer.validation()
         _ = trainer.test()
-
-def train_apply(model_name = None):
-    '''
-    Function for simple training and validation without hyperparameter optimization.
-    '''
-
-    band = 'all' # use all bands
-    data_split = DataSplit() # init dataloader for train, valdiation, test
-
-    # define model and its parameters
-    if model_name == 'ConvNet':
-        model = models.ConvNet(band, params.CONVNET_DROPOUT, batch_norm=False)
-        train_output = params.CONVNET_SIMPLE_TRAIN
-        val_output = params.CONVNET_SIMPLE_VAL
-        learning_rates = params.CONVNET_LEARNING_RATES[0]
-        l2_norm = params.CONVNET_L2_NORM[1]
-        dropout = 0.0 # no dropout
-        class_weight = params.CONVNET_CLASS_WEIGHT
-
-    elif model_name == 'UNet':
-        model = models.UNet(band,params.OUT_DIM, params.UNET_DROPOUT)
-        train_output = params.UNET_SIMPLE_TRAIN
-        val_output = params.UNET_SIMPLE_VAL
-        learning_rates = params.UNET_LEARNING_RATES[1]
-        l2_norm = params.UNET_L2_NORM[1]
-        dropout = 0.0 # no dropout
-        class_weight = params.UNET_CLASS_WEIGHT
-
-    # move to device
-    model = model.to(params.DEVICE)
-
-    # start training and testing
-    trainer = train_test.Trainer(
-        model, 
-        train_loader=data_split.train_loader, 
-        val_loader=data_split.val_loader, 
-        test_loader=data_split.test_loader, 
-        train_output=train_output, 
-        val_output=val_output, band=band, 
-        weight_decay=l2_norm, 
-        lr=learning_rates, 
-        dropout=dropout, 
-        model_name=model.name,
-        class_weight=class_weight
-        )
-    # change description
-    trainer.description = f'{model_name}, bands: {band}, learning rate: {learning_rates}'
-    _ = trainer.training()
-    _ = trainer.validation()
-    _ = trainer.test()

@@ -77,7 +77,7 @@ def write_results(output, file):
     
 class Trainer:
 
-    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, dropout=None, weight_decay=None, model_name=None, class_weight=1.0, lr_scheduler=False, iou_w=0.0, bce_w=1.0):
+    def __init__(self, model, train_loader=None, val_loader=None, test_loader=None, mode = 'train', epochs=params.EPOCHS, lr = None, train_output=None, val_output=None, band=None, weight_decay=None, model_name=None, lr_scheduler=False, iou_w=0.0, bce_w=1.0):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
@@ -96,7 +96,7 @@ class Trainer:
         else:
             self.lr_scheduler = None
         self.iou = IoU() # for UNet (https://towardsdatascience.com/u-net-for-semantic-segmentation-on-unbalanced-aerial-imagery-3474fa1d3e56)
-        self.criterion = nn.BCEWithLogitsLoss(reduction="mean", pos_weight=class_weight)
+        self.criterion = nn.BCEWithLogitsLoss(reduction="mean")
         self.iou_f = iou_w
         self.bce_f = bce_w
     
@@ -179,18 +179,18 @@ class Trainer:
                 print(message)
  
             # calculate, metrics, return f1 score
-            f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
+            #f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
 
-            f1 += f1_tmp
-            accuracy += accuracy_tmp
-            precision += precision_tmp
-            recall += recall_tmp
+            #f1 += f1_tmp
+            #accuracy += accuracy_tmp
+            #precision += precision_tmp
+            #recall += recall_tmp
         
         # print and save metrics
-        f1 /= self.epochs
-        accuracy /= self.epochs
-        precision /= self.epochs
-        recall /= self.epochs
+        #f1 /= self.epochs
+        #accuracy /= self.epochs
+        #precision /= self.epochs
+        #recall /= self.epochs
         
         message = self.description + f'\nTraining accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
@@ -302,7 +302,7 @@ class Trainer:
     
         message = self.description + f'\nTest accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
-        write_results(message + '\n', self.test_output)
+        write_results(message + '\n', self.val_output)
 
         return f1
 

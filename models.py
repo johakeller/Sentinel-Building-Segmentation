@@ -54,7 +54,7 @@ class UNet(nn.Module):
         
         def forward(self, x):
             x = self.batch_norm(self.relu(self.conv_1(x)))
-            self.residual = self.relu(self.batch_norm(self.conv_2(x))) # take residual before max_pool
+            self.residual = self.relu(self.conv_2(x)) # take residual before max_pool
             x = self.max_pool(self.residual)
             return x
 
@@ -71,7 +71,7 @@ class UNet(nn.Module):
         def forward(self, x, residual):
             x = self.batch_norm(self.up_conv(x))
             x = self.relu(self.conv_1(torch.cat([x, residual], dim=1))) 
-            x = self.relu(self.batch_norm(self.conv_2(x)))
+            x = self.relu(self.conv_2(x))
             return x
 
     def __init__(self, bands, channels_out, dropout_rate):

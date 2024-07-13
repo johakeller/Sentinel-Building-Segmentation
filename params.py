@@ -7,18 +7,18 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # data paths 
 OSM_PATH = r'../OSM_maps/'
-#IMAGE_DATA_PATH = r'../image_data/'
-#DATASET_TRAIN = r'../dataset/training/'
-#DATASET_VAL = r'../dataset/validation/'
-#DATASET_TEST = r'../dataset/test/'
-#OUT_PATH = r'../output/'
+IMAGE_DATA_PATH = r'../image_data/'
+DATASET_TRAIN = r'../dataset/training/'
+DATASET_VAL = r'../dataset/validation/'
+DATASET_TEST = r'../dataset/test/'
+OUT_PATH = r'../output/'
 
 # colab paths
-IMAGE_DATA_PATH = r'/content/image_data/'
-DATASET_TRAIN = r'/content/dataset/training/'
-DATASET_VAL = r'/content/dataset/validation/'
-DATASET_TEST = r'/content/dataset/test/'
-OUT_PATH = r'/content/output/'
+#IMAGE_DATA_PATH = r'/content/image_data/'
+#DATASET_TRAIN = r'/content/dataset/training/'
+#DATASET_VAL = r'/content/dataset/validation/'
+#DATASET_TEST = r'/content/dataset/test/'
+#OUT_PATH = r'/content/output/'
 
 #DATA_CITIES = ['Lyon']
 DATA_CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] # cities to collect data from
@@ -48,21 +48,21 @@ CONVNET_DROPOUT = 0.15 # ConvNet
 CONVNET_LEARNING_RATES = [1e-3, 1e-4, 1e-5] # ConvNet
 CONVNET_L2_NORM = [1e-3, 5e-4] # ConvNet
 CONVNET_CLASS_WEIGHT =torch.FloatTensor([1.0]).to(DEVICE)
-UNET_IOU_WEIGHT = 0.0
-UNET_BCE_WEIGHT = 1.0
+CONVNET_IOU_WEIGHT = 0.0
+CONVNET_BCE_WEIGHT = 1.0
 
 # UNet parameters 
 UNET_TRAIN = 'UNet_hyper_train_metrics' # train metrics output file name
 UNET_VAL = 'UNet_hyper_test_metrics' # validation metrics output file name
-UNET_SIMPLE_TRAI5N = 'UNet_train_metrics' # train metrics output file name (no hyperparameter optimization)
+UNET_SIMPLE_TRAIN = 'UNet_train_metrics' # train metrics output file name (no hyperparameter optimization)
 UNET_SIMPLE_VAL = 'UNet_test_metrics' # validation metrics output file name (no hyperparameter optimization)
 UNET_AUG_TRAIN = 'UNet_train_augment_metrics' # train metrics augmentation 
 UNET_AUG_VAL = 'UNet_test_augment_metrics' # validation metrics augmentation 
 OUT_DIM = 1 # output
 
 # UNet hyperparameters
-UNET_DROPOUT = 0.1 # dropout rate
-UNET_LEARNING_RATES = [1e-3, 1e-4, 1e-5] # learning rates
+UNET_DROPOUT = 0.0 # dropout rate
+UNET_LEARNING_RATES = [1e-2, 1e-3, 1e-4] # learning rates
 UNET_L2_NORM = [1e-4, 1e-5] # L2 normalization (weight decay)
 UNET_CLASS_WEIGHT = torch.FloatTensor([1.0]).to(DEVICE) # weight for postive class
 UNET_IOU_WEIGHT = 0.4
@@ -76,6 +76,6 @@ PRED_THRESHOLD = 0.5 # threshold for predicting a pixel as 'building'
 BAND = 'all' # used bands for augmentation
 PROB = 0.4 # prob. of augmentation being applied per sample
 GMEAN = 0 # Gaussian mean
-STDDEV = 0.045 # Gaussian standard deviation 
-SP_PROB = 0.05 # probability of salt and pepper noises
+STDDEV = 0.025 # Gaussian standard deviation 
+SP_PROB = 0.025 # probability of salt and pepper noises
 MAX_ZOOM = 2.2 # max zoom factor
