@@ -159,7 +159,7 @@ def plot_image_data(image_data, city):
     rgb = np.dstack([image_data['RGB'][0],image_data['RGB'][1],image_data['RGB'][2]])
     nirgb = np.dstack([image_data['NIRGB'][0],image_data['NIRGB'][1],image_data['NIRGB'][2]])
 
-    # plot overlapping buildings TODO large vertcial margin
+    # plot overlapping buildings
     ax_list[0][0].imshow(rgb, zorder=1, aspect='equal')
     ax_list[0][0].imshow(image_data['Buildings'], cmap=building_cmap, zorder=2, aspect='equal')
     

@@ -13,13 +13,6 @@ DATASET_VAL = r'../dataset/validation/'
 DATASET_TEST = r'../dataset/test/'
 OUT_PATH = r'../output/'
 
-# colab paths
-#IMAGE_DATA_PATH = r'/content/image_data/'
-#DATASET_TRAIN = r'/content/dataset/training/'
-#DATASET_VAL = r'/content/dataset/validation/'
-#DATASET_TEST = r'/content/dataset/test/'
-#OUT_PATH = r'/content/output/'
-
 #DATA_CITIES = ['Lyon']
 DATA_CITIES = ['Aachen', 'Aarhus', 'Bonn','Copenhagen','Helsinki','Lausanne','Leipzig','Lyon','Porto','Potsdam'] # cities to collect data from
 CITIES = ['Aachen', 'Bonn','Copenhagen'] # cities to perform training on
@@ -45,11 +38,10 @@ CONVNET_AUG_VAL = 'ConvNet_test_augment_metrics' # validation metrics augmentati
 
 # ConvNet hyperparameters
 CONVNET_DROPOUT = 0.15 # ConvNet
-CONVNET_LEARNING_RATES = [1e-3, 1e-4, 1e-5] # ConvNet
+CONVNET_LEARNING_RATES = [1e-3, 1e-4, 5e-5] # ConvNet
 CONVNET_L2_NORM = [1e-3, 5e-4] # ConvNet
-CONVNET_CLASS_WEIGHT =torch.FloatTensor([1.0]).to(DEVICE)
-CONVNET_IOU_WEIGHT = 0.0
-CONVNET_BCE_WEIGHT = 1.0
+CONVNET_IOU_WEIGHT = 1.0
+CONVNET_BCE_WEIGHT = 0.0
 
 # UNet parameters 
 UNET_TRAIN = 'UNet_hyper_train_metrics' # train metrics output file name
@@ -64,7 +56,6 @@ OUT_DIM = 1 # output
 UNET_DROPOUT = 0.0 # dropout rate
 UNET_LEARNING_RATES = [1e-2, 1e-3, 1e-4] # learning rates
 UNET_L2_NORM = [1e-4, 1e-5] # L2 normalization (weight decay)
-UNET_CLASS_WEIGHT = torch.FloatTensor([1.0]).to(DEVICE) # weight for postive class
 UNET_IOU_WEIGHT = 0.4
 UNET_BCE_WEIGHT = 0.6
 

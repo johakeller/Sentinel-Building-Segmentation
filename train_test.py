@@ -1,9 +1,10 @@
+'''Module to run training, validation, and test.'''
+
 import os
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
+from torch import nn
+from torch import optim
+from torch.optim.lr_scheduler import StepLR
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -12,51 +13,31 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import params
 
 class IoU(nn.Module):
-    # TODO source: https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch/notebook
+    '''
+    Class to compute IoU loss.
+    '''
+
     def __init__(self):
         super(IoU, self).__init__()
 
-    def forward(self, predictions, labels, smoothing =1.0):
-
+    def forward(self, predictions, labels):
+        
         # apply Sigmoid
         predictions = torch.sigmoid(predictions).to(params.DEVICE)
 
         # flattening
-        predictions = predictions.view(-1)
-        labels= labels.view(-1)
+        predictions = torch.flatten(predictions)
+        labels= torch.flatten(labels)
 
-        # intersection
-        intersection = (predictions* labels).sum()
-        total =(predictions + labels).sum()
-        union = total - intersection
+        # intersection where both are 1
+        intersection = (predictions* labels)
+        intersection = intersection.sum()
 
-        return 1-((intersection + smoothing)/ (union +smoothing))
-    
-#TODO DELETE
-def visualize_test(inp, lab, pred, inp_title, lab_title, pred_title, city, ctr):
-    # Create a new figure for the subplots
-    plt.figure(figsize=(15, 5))
+        # union: remove the intersection from sum
+        union = (predictions + labels).sum()- intersection
 
-    # List of images and titles
-    images = [inp, lab, pred]
-    titles = [inp_title, lab_title, pred_title]
-
-    for i in range(3):
-        # Get the tensor from the 'R' channel, remove the first dimension (1, 128, 128) -> (128, 128)
-        
-        r_channel_tensor = images[i][0]
-
-        # Convert the tensor to a NumPy array
-        r_channel_array = r_channel_tensor.cpu().detach().numpy()
-
-        # Plot the greyscale image in the specified subplot
-        plt.subplot(1, 3, i+1)
-        plt.imshow(r_channel_array, cmap='gray')
-        plt.title(titles[i])
-        plt.axis('off')  # Hide axes 
-
-    # Show the combined figure
-    plt.savefig(os.path.join(params.OUT_PATH, f'{city}_{ctr}.png'))
+        # avoid zero division
+        return 1.0 -((intersection + 1.0)/ (union + 1.0))
 
 def write_results(output, file):
     '''
@@ -91,11 +72,10 @@ class Trainer:
         self.learning_rate = lr
         self.optimizer = optim.Adam(model.parameters(), lr =self.learning_rate, weight_decay=weight_decay)
         if lr_scheduler:
-            self.lr_scheduler = StepLR(self.optimizer, step_size = 4, gamma = 0.95) 
-            #self.lr_scheduler = CosineAnnealingLR(self.optimizer, T_max=45, eta_min=1e-6)
+            self.lr_scheduler = StepLR(self.optimizer, step_size = 8, gamma = 0.95) 
         else:
             self.lr_scheduler = None
-        self.iou = IoU() # for UNet (https://towardsdatascience.com/u-net-for-semantic-segmentation-on-unbalanced-aerial-imagery-3474fa1d3e56)
+        self.iou = IoU() 
         self.criterion = nn.BCEWithLogitsLoss(reduction="mean")
         self.iou_f = iou_w
         self.bce_f = bce_w
@@ -104,6 +84,7 @@ class Trainer:
         '''
         Start training.
         '''
+
         # print hyperparameters
         print(self.description)
 
@@ -130,34 +111,19 @@ class Trainer:
                 prog_bar = tqdm(total=len(dataloader.dataset), desc=f'Training epoch {epoch+1}, {city}', position=0, leave=False)
                 avg_loss = 0.0
 
-                # TODO delete
-                inp = None
-                pred = None
-                lab = None
-
                 for data in dataloader: # go through data in each data loader
 
                     # update prog_bar
                     prog_bar.update(dataloader.batch_size)
-                    #print('new batch:')
 
                     train_input = data[self.band].to(params.DEVICE)
                     train_label = data['label'].to(params.DEVICE)
                     
-                    #print('before forward pass')
                     prediction = self.model.forward(train_input) # forward pass
 
                     # for UNet:compund loss BCE and IoU
                     loss = self.bce_f*self.criterion(prediction, train_label) + self.iou_f*self.iou(prediction, train_label) # calculate error
                     avg_loss += loss.item()
-                    #print(f'loss: {round(loss.item(),3)}')
-                    #print(f'learning rate: {self.optimizer.param_groups[0]["lr"]}')
-
-                    # TODO DELETE
-                    #inp = train_input[3]
-                    #pred = prediction[3]
-                    #lab = train_label[3]
-                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # backpropagation
                     self.optimizer.zero_grad()
@@ -169,7 +135,7 @@ class Trainer:
                     # create binary predictions out of probabilities by thresholding
                     all_predictions = torch.cat((all_predictions, (prediction > params.PRED_THRESHOLD).flatten().detach()))
 
-                    # step after ten batches
+                    # lr scheduler step, if lr scheduler exists
                     if self.lr_scheduler is not None:
                         self.lr_scheduler.step()
 
@@ -179,18 +145,18 @@ class Trainer:
                 print(message)
  
             # calculate, metrics, return f1 score
-            #f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
+            f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
 
-            #f1 += f1_tmp
-            #accuracy += accuracy_tmp
-            #precision += precision_tmp
-            #recall += recall_tmp
+            f1 += f1_tmp
+            accuracy += accuracy_tmp
+            precision += precision_tmp
+            recall += recall_tmp
         
         # print and save metrics
-        #f1 /= self.epochs
-        #accuracy /= self.epochs
-        #precision /= self.epochs
-        #recall /= self.epochs
+        f1 /= self.epochs
+        accuracy /= self.epochs
+        precision /= self.epochs
+        recall /= self.epochs
         
         message = self.description + f'\nTraining accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
@@ -202,6 +168,7 @@ class Trainer:
         '''
         Start validation.
         '''
+
         # set model to validation mode
         self.model.eval()
 
@@ -214,9 +181,6 @@ class Trainer:
             # statistics 
             avg_loss = 0.0
             prog_bar = tqdm(total=len(dataloader.dataset), desc=f'{city} validation', position=0, leave=False)
-            inp = None
-            pred = None
-            lab = None
 
             with torch.no_grad():
                 for i, data in enumerate(dataloader): # go through data in each data loader
@@ -225,19 +189,10 @@ class Trainer:
 
                     test_input = data[self.band].to(params.DEVICE)
                     test_label = data['label'].to(params.DEVICE)
-                    #print(f'label: {test_label.shape}, type {type(test_label)}')
 
                     prediction = self.model.forward(test_input) # forward pass
                     loss = self.bce_f*self.criterion(prediction, test_label) + self.iou_f*self.iou(prediction, test_label)
                     avg_loss += loss.item()
-
-                    inp = test_input[3]
-                    pred = prediction[3]
-                    lab = test_label[3]
-                    visualize_test(inp, lab, pred, 'input', 'label', 'prediction', city, i)
-
-                    # DELETE
-                    #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
                     # for metrics (remove unnecessary first dimension)
                     all_labels = torch.cat((all_labels, test_label.flatten().detach()))
@@ -258,7 +213,8 @@ class Trainer:
         '''
         Start testing.
         '''
-        # set model to validation mode
+
+        # set model into validation mode
         self.model.eval()
         dataloader = self.test_loader
 
@@ -266,25 +222,16 @@ class Trainer:
         avg_loss = 0.0
         all_labels = torch.tensor([]).to(params.DEVICE)
         all_predictions = torch.tensor([]).to(params.DEVICE)
-        #inp = None
-        #pred = None
-        #lab = None
 
         with torch.no_grad():
             for data in dataloader: # go through data in each data loader
 
                 test_input = data[self.band].to(params.DEVICE)
                 test_label = data['label'].to(params.DEVICE)
-                #print(f'label: {test_label.shape}, type {type(test_label)}')
 
                 prediction = self.model.forward(test_input) # forward pass
                 loss = loss = self.bce_f*self.criterion(prediction, test_label) + self.iou_f*self.iou(prediction, test_label)
                 avg_loss += loss.item()
-
-                # for visualization
-                #inp = test_input[0]
-                #pred = prediction[0]
-                #lab = test_label[0]
 
                 # for metrics (remove unnecessary first dimension)
                 all_labels = torch.cat((all_labels, test_label.flatten().detach()))
@@ -293,9 +240,6 @@ class Trainer:
         # average loss per city
         message = f'Test Berlin, avg loss: {round(avg_loss/ len(dataloader),2)}'
         print(message)
-
-        # DELETE
-        #visualize_test(inp, lab, pred, 'input', 'label', 'prediction')
 
         # calculate, metrics, return f1 score
         f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Test')
@@ -306,7 +250,7 @@ class Trainer:
 
         return f1
 
-    def calculate_metrics(self, labels, predictions, output, mode):
+    def calculate_metrics(self, labels, predictions):
         '''
         Function that computes based on the probabilities for each class (processed model output)
         the average confidence per label, the value of the lowest confidence across all labels and 

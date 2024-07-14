@@ -24,12 +24,10 @@ def check_data():
         if not os.path.exists(os.path.join(params.IMAGE_DATA_PATH, f'{city}.pkl')):
             # check also for dataset
             if not os.path.exists(os.path.join(params.DATASET_TRAIN, f'{city}_data.mmap')):
-                print(os.path.join(params.DATASET_TRAIN, f'{city}_data.mmap')) #TODO delete
                 return False
     if not os.path.exists(os.path.join(params.IMAGE_DATA_PATH, f'{params.TEST_CITY}.pkl')):
         # check also for dataset
         if not os.path.exists(os.path.join(params.DATASET_TEST, f'{params.TEST_CITY}_data.mmap')):
-            print(os.path.join(params.DATASET_TEST, f'{params.TEST_CITY}_data.mmap')) #TODO delete
             return False
     # everything there
     return True
@@ -111,7 +109,6 @@ if __name__ == "__main__":
                 print('Usage: $ python main.py [acq] [plot]/([unet] [hyper]/[augment])/[convnet] [augment]')
                 sys.exit(1)
     
-    # TODO BUG solved
     # against threading bug
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'

@@ -1,0 +1,6 @@
+Sometimes on CPU a threading error occurs. This is, when the training hangs at random points. 
+This can be resolved by setting threading environment variables with thread_env.sh. In that 
+case, before executing main.py, enter in the command line:
+$ export OMP_NUM_THREADS=1
+$ export MKL_NUM_THREADS=1
+

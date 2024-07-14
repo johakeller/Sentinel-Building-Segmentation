@@ -1,6 +1,7 @@
 keras==3.3.3
 matplotlib
 numpy==1.26.4
+opencv-python
 openeo==0.30.0
 rasterio
 pandas==2.0.3

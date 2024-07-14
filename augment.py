@@ -1,3 +1,4 @@
+'''Module to apply augmentations or augmentation pipelines to the data.'''
 import numpy as np
 import cv2
 
@@ -66,22 +67,24 @@ def salt_pepper_noise(data_sample, probability=params.PROB, sp_prob=params.SP_PR
             for i, channel in enumerate(image[:]):
                 
                 for pos in coords_black:
-                        # set black
-                        channel[pos[0], pos[1]] = 0
-                        #print(pos[0], pos[1])
+                    # set black
+                    channel[pos[0], pos[1]] = 0
+
                 for pos in coords_white:
-                        channel[pos[0], pos[1]] = 1
+                    # set white
+                    channel[pos[0], pos[1]] = 1
 
                 image[i] = channel
 
         # just a single channelS
         else:
             for pos in coords_black:
-                    # set black
-                    image[pos[0], pos[1]] = 0
-                    #print(pos[0], pos[1])
+                # set black
+                image[pos[0], pos[1]] = 0
+
             for pos in coords_white:
-                    image[pos[0], pos[1]] = 1
+                # set white
+                image[pos[0], pos[1]] = 1
 
         # insert back into data_sample dictionary
         data_sample[params.BAND] = image
@@ -132,7 +135,9 @@ def rnd_zoom(data_sample, probability=params.PROB, max_zoom= params.MAX_ZOOM):
     return data_sample
 
 def h_flip(data_sample, probability=params.PROB):
-
+    '''
+    Augmentation that is applying a horizontal flip with a given probability.
+    '''
     # extract images from data sample
     bands = [params.BAND, 'label']
 
@@ -147,7 +152,7 @@ def h_flip(data_sample, probability=params.PROB):
             # apply to single bands as well as composed bands -> multi-channel image
             if image.ndim > 2:
 
-                for i, channel in enumerate(image[:]):
+                for channel in image[:]:
                     # insert back 
                     channel = cv2.flip(channel, 1)
 

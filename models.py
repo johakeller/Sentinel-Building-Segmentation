@@ -1,7 +1,11 @@
+'''Module for the models ConvNet and U-Net.'''
+
 import torch
-import torch.nn as nn
+from torch import nn
 
 class ConvNet(nn.Module):
+    '''ConvNet model.'''
+
     def __init__(self, bands, dropout_rate, batch_norm=True):
         super(ConvNet, self).__init__()
         # select correct input dimension corresponding to number of bands
@@ -41,6 +45,7 @@ class ConvNet(nn.Module):
         return self.model(x)
 
 class UNet(nn.Module):
+    '''U-Net model.'''
     class Encoder(nn.Module):
         def __init__(self, in_dimension, out_dimension, dropout_rate):
             super(UNet.Encoder, self).__init__()

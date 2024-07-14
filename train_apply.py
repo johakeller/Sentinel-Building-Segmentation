@@ -45,7 +45,7 @@ def train_apply(model_name = None):
 
     # define model and its parameters
     if model_name == 'ConvNet':
-        model = models.ConvNet(band, params.CONVNET_DROPOUT, batch_norm=False)
+        model = models.ConvNet(band, params.CONVNET_DROPOUT)
         train_output = params.CONVNET_SIMPLE_TRAIN
         val_output = params.CONVNET_SIMPLE_VAL
         learning_rates = params.CONVNET_LEARNING_RATES[0]
@@ -91,7 +91,7 @@ def train_apply(model_name = None):
 
 def train_apply_hyper(model_name = None):
     '''
-    Applies the hyperparameter optimization
+    Applies the hyperparameter optimization.
     '''
     if model_name == 'ConvNet':
         learning_rates = params.CONVNET_LEARNING_RATES
