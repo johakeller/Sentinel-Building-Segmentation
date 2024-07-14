@@ -5,9 +5,7 @@ import torch
 from torch import nn
 from torch import optim
 from torch.optim.lr_scheduler import StepLR
-
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 import params
@@ -145,7 +143,7 @@ class Trainer:
                 print(message)
  
             # calculate, metrics, return f1 score
-            f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Training')
+            f1_tmp, accuracy_tmp, precision_tmp, recall_tmp = self.calculate_metrics(all_labels, all_predictions)
 
             f1 += f1_tmp
             accuracy += accuracy_tmp
@@ -201,7 +199,7 @@ class Trainer:
             prog_bar.close()
             
         # calculate, metrics, return f1 score
-        f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Validation')
+        f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions)
     
         message = self.description + f'\nValidation accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
@@ -242,7 +240,7 @@ class Trainer:
         print(message)
 
         # calculate, metrics, return f1 score
-        f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions, self.train_output, mode='Test')
+        f1, accuracy, precision, recall = self.calculate_metrics(all_labels, all_predictions)
     
         message = self.description + f'\nTest accuracy: {accuracy:.2f}, precision: {precision:.2f}, recall: {recall:.2f}, f1 score: {f1:.2f}\n'
         print(message)
