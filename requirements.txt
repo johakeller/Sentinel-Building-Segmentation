@@ -1,0 +1,10 @@
+keras==3.3.3
+matplotlib
+numpy==1.26.4
+opencv-python
+openeo==0.30.0
+rasterio
+pandas==2.0.3
+pyrosm
+protobuf==4.25.3
+scikit-learn==1.3.0
