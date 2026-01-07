@@ -1,6 +1,7 @@
 # Sentinel Building Segmentation
 ![UNet prediction](docs/images/Copenhagen_1.png)
 *U-Net prediction for Sentinel-2 image data (red channel displayed).*
+Binary segmentation of buildings, given satellite imagery of cities from the Sentinel Copernicus program. The code includes a pipeline for the sattelite imagery and corresponding reference data (building masks). Semantic segmentation is conducted with a simple convolutional network (ConvNet) as a baseline model and with an U-Net model.
 
 ## Setup
 
